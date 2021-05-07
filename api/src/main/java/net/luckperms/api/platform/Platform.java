@@ -77,7 +77,8 @@ public interface Platform {
         VELOCITY("Velocity"),
         FABRIC("Fabric"),
         FORGE("Forge"),
-        STANDALONE("Standalone");
+        STANDALONE("Standalone"),
+        KRYPTON("Krypton");
 
         private final String friendlyName;
 
