@@ -38,7 +38,7 @@ class KryptonCommandExecutor(
 
     fun register() = plugin.bootstrap.registerCommand(this)
 
-    override suspend fun execute(sender: Sender, args: List<String>) {
+    override fun execute(sender: Sender, args: List<String>) {
         val wrapped = plugin.senderFactory.wrap(sender)
         manager.executeCommand(wrapped, "lp", args.tokenize())
     }

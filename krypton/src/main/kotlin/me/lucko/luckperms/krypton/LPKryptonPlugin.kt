@@ -46,6 +46,7 @@ import me.lucko.luckperms.krypton.listeners.KryptonPermissionCheckListener
 import me.lucko.luckperms.krypton.messaging.KryptonMessagingFactory
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.query.QueryOptions
+import org.kryptonmc.krypton.api.service.register
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
@@ -99,7 +100,7 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
 
     override fun provideEventBus(apiProvider: LuckPermsApiProvider) = KryptonEventBus(this, apiProvider)
 
-    override fun registerApiOnPlatform(api: LuckPerms) = Unit // no services managers here
+    override fun registerApiOnPlatform(api: LuckPerms) = bootstrap.server.servicesManager.register(bootstrap, api)
 
     override fun registerHousekeepingTasks() {
         bootstrap.scheduler.asyncRepeating(ExpireTemporaryTask(this), 3, TimeUnit.SECONDS)

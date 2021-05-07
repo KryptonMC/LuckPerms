@@ -60,7 +60,7 @@ class LPKryptonBootstrap(context: PluginContext) : Plugin(context), LuckPermsBoo
         }
     }
 
-    override suspend fun initialize() {
+    override fun initialize() {
         serverStarting = true
         startTime = Instant.now()
         try {
@@ -94,7 +94,7 @@ class LPKryptonBootstrap(context: PluginContext) : Plugin(context), LuckPermsBoo
 
     override fun getServerBrand() = server.info.name
 
-    override fun getServerVersion() = "${server.info.minecraftVersion} - ${server.info.version}"
+    override fun getServerVersion() = "${server.info.version} (for Minecraft ${server.info.minecraftVersion})"
 
     override fun getDataDirectory(): Path = context.folder.toPath()
 
