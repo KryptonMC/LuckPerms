@@ -27,6 +27,7 @@ package me.lucko.luckperms.krypton.listeners
 
 import me.lucko.luckperms.common.calculator.result.TristateResult
 import me.lucko.luckperms.common.query.QueryOptionsImpl.DEFAULT_CONTEXTUAL
+import me.lucko.luckperms.common.verbose.VerboseCheckTarget
 import me.lucko.luckperms.common.verbose.event.PermissionCheckEvent.Origin.PLATFORM_PERMISSION_CHECK
 import me.lucko.luckperms.krypton.LPKryptonPlugin
 import net.luckperms.api.util.Tristate
@@ -42,7 +43,6 @@ class KryptonPermissionCheckListener(private val plugin: LPKryptonPlugin) {
     @Listener(ListenerPriority.LOW)
     fun onPermissionCheck(event: PermissionCheckEvent) {
         if (event.permission == null) return
-
         val sender = event.sender
         if (sender !is Player) return
 
@@ -54,6 +54,7 @@ class KryptonPermissionCheckListener(private val plugin: LPKryptonPlugin) {
                         "Perhaps their UUID has been altered since last login?", Exception()
             )
             event.result = PermissionCheckResult.FALSE
+            return
         }
 
         val queryOptions = plugin.contextManager.getQueryOptions(sender) ?: return
@@ -70,9 +71,9 @@ class KryptonPermissionCheckListener(private val plugin: LPKryptonPlugin) {
 
         val permission = event.permission
         val result = event.result.toTristate()
-        val name = "internal/${event.sender.name}"
+        val target = VerboseCheckTarget.internal(event.sender.name)
 
-        plugin.verboseHandler.offerPermissionCheckEvent(PLATFORM_PERMISSION_CHECK, name, DEFAULT_CONTEXTUAL, permission, TristateResult.of(result))
+        plugin.verboseHandler.offerPermissionCheckEvent(PLATFORM_PERMISSION_CHECK, target, DEFAULT_CONTEXTUAL, permission, TristateResult.of(result))
         plugin.permissionRegistry.offer(permission)
     }
 }

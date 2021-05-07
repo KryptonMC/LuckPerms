@@ -62,7 +62,6 @@ class LPKryptonBootstrap(context: PluginContext) : Plugin(context), LuckPermsBoo
 
     override suspend fun initialize() {
         serverStarting = true
-        serverStopping = false
         startTime = Instant.now()
         try {
             plugin.enable()
