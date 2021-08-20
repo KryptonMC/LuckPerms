@@ -23,24 +23,26 @@
  *  SOFTWARE.
  */
 
-package me.lucko.luckperms.krypton.command
+package me.lucko.luckperms.krypton
 
 import me.lucko.luckperms.common.command.CommandManager
 import me.lucko.luckperms.common.command.utils.ArgumentTokenizer
-import me.lucko.luckperms.krypton.LPKryptonPlugin
-import org.kryptonmc.krypton.api.command.Command
-import org.kryptonmc.krypton.api.command.Sender
+import org.kryptonmc.api.command.RawCommand
+import org.kryptonmc.api.command.Sender
+import org.kryptonmc.api.command.meta.commandMeta
 
-class KryptonCommandExecutor(
-    private val plugin: LPKryptonPlugin,
-    private val manager: CommandManager
-) : Command(NAME, null, ALIASES) {
+class KryptonCommandExecutor(private val plugin: LPKryptonPlugin) : CommandManager(plugin), RawCommand {
 
-    fun register() = plugin.bootstrap.registerCommand(this)
+    fun register() = plugin.bootstrap.server.commandManager.register(this, commandMeta(NAME) { aliases(ALIASES) })
 
-    override fun execute(sender: Sender, args: List<String>) {
+    override fun execute(sender: Sender, args: String) {
         val wrapped = plugin.senderFactory.wrap(sender)
-        manager.executeCommand(wrapped, "lp", args.tokenize())
+        executeCommand(wrapped, "lp", ArgumentTokenizer.EXECUTE.tokenizeInput(args))
+    }
+
+    override fun suggest(sender: Sender, args: String): List<String> {
+        val wrapped = plugin.senderFactory.wrap(sender)
+        return tabCompleteCommand(wrapped, ArgumentTokenizer.TAB_COMPLETE.tokenizeInput(args))
     }
 
     companion object {
@@ -49,5 +51,3 @@ class KryptonCommandExecutor(
         private val ALIASES = listOf("lp")
     }
 }
-
-private fun List<String>.tokenize() = ArgumentTokenizer.EXECUTE.tokenizeInput(joinToString(" "))

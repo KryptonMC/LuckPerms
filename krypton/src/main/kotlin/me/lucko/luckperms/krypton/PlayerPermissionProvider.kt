@@ -25,35 +25,22 @@
 
 package me.lucko.luckperms.krypton
 
-import me.lucko.luckperms.common.plugin.scheduler.SchedulerAdapter
-import me.lucko.luckperms.common.plugin.scheduler.SchedulerTask
-import org.kryptonmc.api.scheduling.Scheduler
-import org.kryptonmc.api.scheduling.Task
-import java.util.concurrent.Executor
-import java.util.concurrent.TimeUnit
+import me.lucko.luckperms.common.context.QueryOptionsSupplier
+import me.lucko.luckperms.common.model.User
+import org.kryptonmc.api.entity.player.Player
+import org.kryptonmc.api.permission.PermissionFunction
+import org.kryptonmc.api.permission.PermissionProvider
+import org.kryptonmc.api.permission.Subject
 
-class KryptonSchedulerAdapter(private val bootstrap: LPKryptonBootstrap, private val scheduler: Scheduler) : SchedulerAdapter {
+class PlayerPermissionProvider(
+    private val player: Player,
+    private val user: User,
+    private val queryOptionsSupplier: QueryOptionsSupplier
+) : PermissionProvider, PermissionFunction {
 
-    private val executor = Executor { scheduler.run(bootstrap) { it.run() } }
-    private val tasks = mutableSetOf<Task>()
-
-    override fun sync() = executor
-
-    override fun async() = executor
-
-    override fun asyncLater(task: Runnable, delay: Long, unit: TimeUnit): SchedulerTask {
-        val scheduledTask = scheduler.schedule(bootstrap, delay, unit) { task.run() }
-        tasks += scheduledTask
-        return SchedulerTask { scheduledTask.cancel() }
+    override fun createFunction(subject: Subject) = apply {
+        check(subject === player) { "createFunction called with a different argument!" }
     }
 
-    override fun asyncRepeating(task: Runnable, interval: Long, unit: TimeUnit): SchedulerTask {
-        val scheduledTask = scheduler.schedule(bootstrap, interval, interval, unit) { task.run() }
-        tasks += scheduledTask
-        return SchedulerTask { scheduledTask.cancel() }
-    }
-
-    override fun shutdownScheduler() = tasks.forEach { it.cancel() }
-
-    override fun shutdownExecutor() {}
+    override fun get(permission: String) = user.cachedData.getPermissionData(queryOptionsSupplier.queryOptions).checkPermission(permission).toTriState()
 }

@@ -33,8 +33,8 @@ import net.luckperms.api.context.Context
 import net.luckperms.api.context.ContextCalculator
 import net.luckperms.api.context.ContextConsumer
 import net.luckperms.api.context.DefaultContextKeys
-import org.kryptonmc.krypton.api.entity.entities.Player
-import org.kryptonmc.krypton.api.world.Gamemode
+import org.kryptonmc.api.entity.player.Player
+import org.kryptonmc.api.world.Gamemode
 
 // TODO: Add event listening for gamemode and world changes and joining worlds to signal context updates
 // when Krypton supports this
@@ -45,22 +45,26 @@ class KryptonPlayerCalculator(
 
     private val gamemode = DefaultContextKeys.GAMEMODE_KEY !in disabled
     private val world = DefaultContextKeys.WORLD_KEY !in disabled
+    private val dimensionType = DefaultContextKeys.DIMENSION_TYPE_KEY !in disabled
 
     // TODO: Add more checking here when Krypton supports per player worlds and gamemodes
     override fun calculate(target: Player, consumer: ContextConsumer) {
-        if (gamemode) consumer.accept(
-            DefaultContextKeys.GAMEMODE_KEY,
-            GAMEMODE_NAMER.name(plugin.bootstrap.server.gamemode)
-        )
-
-        val world = plugin.bootstrap.server.worldManager.worlds.values.firstOrNull() ?: return
-        if (this.world) plugin.configuration.get(ConfigKeys.WORLD_REWRITES).rewriteAndSubmit(world.name, consumer)
+        if (gamemode) consumer.accept(DefaultContextKeys.GAMEMODE_KEY, GAMEMODE_NAMER.name(target.gamemode))
+        val world = target.world
+        val dimension = world.dimension
+        if (dimensionType) consumer.accept(DefaultContextKeys.DIMENSION_TYPE_KEY, dimension.location.value())
+        if (this.world) plugin.configuration[ConfigKeys.WORLD_REWRITES].rewriteAndSubmit(world.name, consumer)
     }
 
     override fun estimatePotentialContexts() = ImmutableContextSetImpl.BuilderImpl().apply {
         if (gamemode) Gamemode.values().forEach { add(DefaultContextKeys.GAMEMODE_KEY, GAMEMODE_NAMER.name(it)) }
-        if (world) plugin.bootstrap.server.worldManager.worlds.forEach { (key, _) ->
-            if (Context.isValidValue(key)) add(DefaultContextKeys.WORLD_KEY, key)
+        if (dimensionType) {
+            add(DefaultContextKeys.DIMENSION_TYPE_KEY, "overworld")
+            add(DefaultContextKeys.DIMENSION_TYPE_KEY, "the_nether")
+            add(DefaultContextKeys.DIMENSION_TYPE_KEY, "the_end")
+        }
+        if (world) plugin.bootstrap.server.worldManager.worlds.forEach { (_, world) ->
+            if (Context.isValidValue(world.name)) add(DefaultContextKeys.WORLD_KEY, world.name)
         }
     }.build()
 

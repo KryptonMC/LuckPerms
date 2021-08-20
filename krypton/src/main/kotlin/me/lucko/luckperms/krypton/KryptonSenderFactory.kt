@@ -28,14 +28,17 @@ package me.lucko.luckperms.krypton
 import me.lucko.luckperms.common.locale.TranslationManager
 import me.lucko.luckperms.common.sender.SenderFactory
 import net.kyori.adventure.text.Component
-import net.luckperms.api.util.Tristate
-import org.kryptonmc.krypton.api.command.Sender
-import org.kryptonmc.krypton.api.entity.entities.Player
-import java.util.*
+import org.kryptonmc.api.command.ConsoleSender
+import org.kryptonmc.api.command.Sender
+import org.kryptonmc.api.entity.player.Player
+import java.util.UUID
 
 class KryptonSenderFactory(private val plugin: LPKryptonPlugin) : SenderFactory<LPKryptonPlugin, Sender>(plugin) {
 
-    override fun getName(sender: Sender) = sender.name
+    override fun getName(sender: Sender): String {
+        if (sender is Player) return sender.name
+        return me.lucko.luckperms.common.sender.Sender.CONSOLE_NAME
+    }
 
     override fun getUniqueId(sender: Sender): UUID {
         if (sender is Player) return sender.uuid
@@ -47,14 +50,13 @@ class KryptonSenderFactory(private val plugin: LPKryptonPlugin) : SenderFactory<
         sender.sendMessage(TranslationManager.render(message, locale))
     }
 
-    override fun getPermissionValue(sender: Sender, node: String) = when (node) {
-        in sender.permissions -> if (sender.permissions.getValue(node)) Tristate.TRUE else Tristate.FALSE
-        else -> Tristate.UNDEFINED
-    }
+    override fun getPermissionValue(sender: Sender, node: String) = sender.getPermissionValue(node).toTristate()
 
     override fun hasPermission(sender: Sender, node: String) = sender.hasPermission(node)
 
-    override fun performCommand(sender: Sender, command: String) = plugin.bootstrap.server.commandManager.dispatch(sender, command)
+    override fun performCommand(sender: Sender, command: String) {
+        plugin.bootstrap.server.commandManager.dispatch(sender, command)
+    }
 
-    override fun isConsole(sender: Sender) = sender !is Player
+    override fun isConsole(sender: Sender) = sender is ConsoleSender
 }

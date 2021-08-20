@@ -25,35 +25,16 @@
 
 package me.lucko.luckperms.krypton
 
-import me.lucko.luckperms.common.plugin.scheduler.SchedulerAdapter
-import me.lucko.luckperms.common.plugin.scheduler.SchedulerTask
-import org.kryptonmc.api.scheduling.Scheduler
-import org.kryptonmc.api.scheduling.Task
-import java.util.concurrent.Executor
-import java.util.concurrent.TimeUnit
+import me.lucko.luckperms.common.api.LuckPermsApiProvider
+import me.lucko.luckperms.common.event.AbstractEventBus
+import org.kryptonmc.api.plugin.PluginContainer
 
-class KryptonSchedulerAdapter(private val bootstrap: LPKryptonBootstrap, private val scheduler: Scheduler) : SchedulerAdapter {
+class KryptonEventBus(private val plugin: LPKryptonPlugin, apiProvider: LuckPermsApiProvider) : AbstractEventBus<PluginContainer>(plugin, apiProvider) {
 
-    private val executor = Executor { scheduler.run(bootstrap) { it.run() } }
-    private val tasks = mutableSetOf<Task>()
-
-    override fun sync() = executor
-
-    override fun async() = executor
-
-    override fun asyncLater(task: Runnable, delay: Long, unit: TimeUnit): SchedulerTask {
-        val scheduledTask = scheduler.schedule(bootstrap, delay, unit) { task.run() }
-        tasks += scheduledTask
-        return SchedulerTask { scheduledTask.cancel() }
+    override fun checkPlugin(plugin: Any): PluginContainer {
+        if (plugin is PluginContainer) return plugin
+        return requireNotNull(this.plugin.bootstrap.server.pluginManager.fromInstance(plugin)) {
+            "Object $plugin (${plugin.javaClass.name}) is not a plugin."
+        }
     }
-
-    override fun asyncRepeating(task: Runnable, interval: Long, unit: TimeUnit): SchedulerTask {
-        val scheduledTask = scheduler.schedule(bootstrap, interval, interval, unit) { task.run() }
-        tasks += scheduledTask
-        return SchedulerTask { scheduledTask.cancel() }
-    }
-
-    override fun shutdownScheduler() = tasks.forEach { it.cancel() }
-
-    override fun shutdownExecutor() {}
 }

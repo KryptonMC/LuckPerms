@@ -26,38 +26,40 @@
 package me.lucko.luckperms.krypton.context
 
 import com.github.benmanes.caffeine.cache.LoadingCache
+import me.lucko.luckperms.common.config.ConfigKeys
 import me.lucko.luckperms.common.context.ContextManager
+import me.lucko.luckperms.common.context.QueryOptionsCache
 import me.lucko.luckperms.common.context.QueryOptionsSupplier
 import me.lucko.luckperms.common.util.CaffeineFactory
 import me.lucko.luckperms.krypton.LPKryptonPlugin
 import net.luckperms.api.context.ImmutableContextSet
+import net.luckperms.api.query.OptionKey
 import net.luckperms.api.query.QueryOptions
-import org.kryptonmc.krypton.api.entity.entities.Player
+import org.kryptonmc.api.entity.player.Player
 import java.util.concurrent.TimeUnit
 
 class KryptonContextManager(plugin: LPKryptonPlugin) : ContextManager<Player, Player>(plugin, Player::class.java, Player::class.java) {
 
-    private val contextsCache = CaffeineFactory.newBuilder()
-        .expireAfterWrite(50, TimeUnit.MILLISECONDS)
-        .build(this::calculate)
+    private val subjectCaches: LoadingCache<Player, QueryOptionsCache<Player>> = CaffeineFactory.newBuilder()
+        .expireAfterAccess(1, TimeUnit.MINUTES)
+        .build { QueryOptionsCache(it, this) }
 
     override fun getUniqueId(player: Player) = player.uuid
 
-    override fun getCacheFor(subject: Player) = InlineQueryOptionsSupplier(subject, contextsCache)
+    override fun getCacheFor(subject: Player) = subjectCaches[subject]!!
 
-    override fun getContext(subject: Player) = getQueryOptions(subject)?.context()
+    override fun invalidateCache(subject: Player) {
+        subjectCaches.getIfPresent(subject)?.invalidate()
+    }
 
-    override fun getQueryOptions(subject: Player) = contextsCache[subject]
+    override fun formQueryOptions(subject: Player, contextSet: ImmutableContextSet): QueryOptions {
+        val options = plugin.configuration[ConfigKeys.GLOBAL_QUERY_OPTIONS].toBuilder()
+        if (subject.permissionLevel > 0) options.option(OPERATOR_OPTION, true)
+        return options.context(contextSet).build()
+    }
 
-    override fun invalidateCache(subject: Player) = contextsCache.invalidate(subject)
+    companion object {
 
-    override fun formQueryOptions(subject: Player, contextSet: ImmutableContextSet): QueryOptions = formQueryOptions(contextSet)
-
-    class InlineQueryOptionsSupplier(
-        private val key: Player,
-        private val cache: LoadingCache<Player, QueryOptions>
-    ) : QueryOptionsSupplier {
-
-        override fun getQueryOptions() = cache[key]
+        val OPERATOR_OPTION = OptionKey.of("op", Boolean::class.java)
     }
 }

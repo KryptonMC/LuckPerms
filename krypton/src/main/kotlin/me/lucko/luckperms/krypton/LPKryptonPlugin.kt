@@ -26,7 +26,6 @@
 package me.lucko.luckperms.krypton
 
 import me.lucko.luckperms.common.api.LuckPermsApiProvider
-import me.lucko.luckperms.common.command.CommandManager
 import me.lucko.luckperms.common.config.ConfigKeys
 import me.lucko.luckperms.common.model.User
 import me.lucko.luckperms.common.model.manager.group.StandardGroupManager
@@ -37,26 +36,23 @@ import me.lucko.luckperms.common.sender.Sender
 import me.lucko.luckperms.common.tasks.CacheHousekeepingTask
 import me.lucko.luckperms.common.tasks.ExpireTemporaryTask
 import me.lucko.luckperms.krypton.calculator.KryptonCalculatorFactory
-import me.lucko.luckperms.krypton.command.KryptonCommandExecutor
 import me.lucko.luckperms.krypton.context.KryptonContextManager
 import me.lucko.luckperms.krypton.context.KryptonPlayerCalculator
-import me.lucko.luckperms.krypton.event.KryptonEventBus
 import me.lucko.luckperms.krypton.listeners.KryptonConnectionListener
-import me.lucko.luckperms.krypton.listeners.KryptonPermissionCheckListener
+import me.lucko.luckperms.krypton.listeners.MonitoringPermissionCheckListener
 import me.lucko.luckperms.krypton.messaging.KryptonMessagingFactory
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.query.QueryOptions
-import org.kryptonmc.krypton.api.service.register
-import java.util.*
+import org.kryptonmc.api.service.register
+import java.util.Optional
 import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
 
 class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckPermsPlugin() {
 
     lateinit var senderFactory: KryptonSenderFactory
-    private val connectionListener = KryptonConnectionListener(this)
-
-    private lateinit var commandManager: CommandManager
+    private lateinit var connectionListener: KryptonConnectionListener
+    private lateinit var commandManager: KryptonCommandExecutor
     private lateinit var userManager: StandardUserManager
     private lateinit var groupManager: StandardGroupManager
     private lateinit var trackManager: StandardTrackManager
@@ -68,18 +64,19 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
         senderFactory = KryptonSenderFactory(this)
     }
 
-    override fun provideConfigurationAdapter() = KryptonConfigAdapter(this, resolveConfig("config.conf").toFile())
+    override fun provideConfigurationAdapter() = KryptonConfigAdapter(this, resolveConfig("config.conf"))
 
     override fun registerPlatformListeners() {
-        bootstrap.registerListener(connectionListener)
-        bootstrap.registerListener(KryptonPermissionCheckListener(this))
+        connectionListener = KryptonConnectionListener(this)
+        bootstrap.server.eventManager.register(bootstrap, connectionListener)
+        bootstrap.server.eventManager.register(bootstrap, MonitoringPermissionCheckListener(this))
     }
 
     override fun provideMessagingFactory() = KryptonMessagingFactory(this)
 
     override fun registerCommands() {
-        commandManager = CommandManager(this)
-        KryptonCommandExecutor(this, commandManager).register()
+        commandManager = KryptonCommandExecutor(this)
+        commandManager.register()
     }
 
     override fun setupManagers() {
@@ -109,8 +106,8 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
 
     override fun performFinalSetup() = Unit
 
-    override fun getQueryOptionsForUser(user: User): Optional<QueryOptions?> = bootstrap.getPlayer(user.uniqueId)
-        .map { contextManager.getQueryOptions(it) }
+    override fun getQueryOptionsForUser(user: User): Optional<QueryOptions> =
+        bootstrap.getPlayer(user.uniqueId).map { contextManager.getQueryOptions(it) }
 
     override fun getOnlineSenders(): Stream<Sender> = Stream.concat(
         Stream.of(consoleSender),

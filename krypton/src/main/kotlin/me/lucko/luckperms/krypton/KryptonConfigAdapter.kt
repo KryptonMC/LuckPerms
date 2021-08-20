@@ -25,62 +25,55 @@
 
 package me.lucko.luckperms.krypton
 
-import com.typesafe.config.ConfigException
-import com.typesafe.config.ConfigFactory
 import me.lucko.luckperms.common.config.generic.adapter.ConfigurationAdapter
-import java.io.File
+import org.spongepowered.configurate.hocon.HoconConfigurationLoader
+import org.spongepowered.configurate.kotlin.extensions.get
+import org.spongepowered.configurate.kotlin.extensions.getList
+import java.io.IOException
+import java.nio.file.Path
 
-class KryptonConfigAdapter(private val plugin: LPKryptonPlugin, private val file: File) : ConfigurationAdapter {
+class KryptonConfigAdapter(
+    private val plugin: LPKryptonPlugin,
+    private val path: Path
+) : ConfigurationAdapter {
 
-    private var config = ConfigFactory.parseFile(file)
-
-    override fun reload() {
-        config = ConfigFactory.parseFile(file)
-    }
-
-    override fun getString(path: String, def: String?): String? = try {
-        config.getString(path)
-    } catch (exception: ConfigException) {
-        def
-    }
-
-    override fun getInteger(path: String, def: Int): Int = try {
-        config.getInt(path)
-    } catch (exception: ConfigException) {
-        def
-    }
-
-    override fun getBoolean(path: String, def: Boolean): Boolean = try {
-        config.getBoolean(path)
-    } catch (exception: ConfigException) {
-        def
-    }
-
-    override fun getStringList(path: String, def: List<String>): List<String> = try {
-        config.getStringList(path)
-    } catch (exception: ConfigException) {
-        def
-    }
-
-    override fun getKeys(path: String, def: List<String>): List<String> {
-        val section = try {
-            config.getObject(path)
-        } catch (exception: ConfigException) {
-            return def
-        }
-
-        return section.keys.toMutableList()
-    }
-
-    override fun getStringMap(path: String, def: Map<String, String>): Map<String, String> {
-        val section = try {
-            config.getObject(path)
-        } catch (exception: ConfigException) {
-            return def
-        }
-
-        return section.keys.associateWith { section[it].toString() }
+    private var root = try {
+        HoconConfigurationLoader.builder().path(path).build().load()
+    } catch (exception: IOException) {
+        throw RuntimeException(exception)
     }
 
     override fun getPlugin() = plugin
+
+    override fun reload() = try {
+        root = HoconConfigurationLoader.builder().path(path).build().load()
+    } catch (exception: IOException) {
+        throw RuntimeException(exception)
+    }
+
+    override fun getString(path: String, def: String?): String? = def?.let { path.resolve().getString(it) }
+
+    override fun getInteger(path: String, def: Int) = path.resolve().getInt(def)
+
+    override fun getBoolean(path: String, def: Boolean) = path.resolve().getBoolean(def)
+
+    override fun getStringList(path: String, def: List<String>): List<String> {
+        val node = path.resolve()
+        if (node.virtual() || !node.isList) return def
+        return node.getList(String::class, def)
+    }
+
+    override fun getKeys(path: String, def: List<String>): List<String> {
+        val node = path.resolve()
+        if (node.virtual() || !node.isMap) return def
+        return node.childrenMap().keys.map { it.toString() }
+    }
+
+    override fun getStringMap(path: String, def: MutableMap<String, String>): MutableMap<String, String> {
+        val node = path.resolve()
+        if (node.virtual()) return def
+        return node.get(def)
+    }
+
+    private fun String.resolve() = root.node(split('.'))
 }

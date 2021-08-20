@@ -28,19 +28,26 @@ package me.lucko.luckperms.krypton.calculator
 import me.lucko.luckperms.common.cacheddata.CacheMetadata
 import me.lucko.luckperms.common.calculator.CalculatorFactory
 import me.lucko.luckperms.common.calculator.PermissionCalculator
-import me.lucko.luckperms.common.calculator.processor.*
+import me.lucko.luckperms.common.calculator.processor.DirectProcessor
+import me.lucko.luckperms.common.calculator.processor.PermissionProcessor
+import me.lucko.luckperms.common.calculator.processor.RegexProcessor
+import me.lucko.luckperms.common.calculator.processor.SpongeWildcardProcessor
+import me.lucko.luckperms.common.calculator.processor.WildcardProcessor
 import me.lucko.luckperms.common.config.ConfigKeys
 import me.lucko.luckperms.krypton.LPKryptonPlugin
+import me.lucko.luckperms.krypton.context.KryptonContextManager
 import net.luckperms.api.query.QueryOptions
 
 class KryptonCalculatorFactory(private val plugin: LPKryptonPlugin) : CalculatorFactory {
 
     override fun build(queryOptions: QueryOptions, metadata: CacheMetadata): PermissionCalculator {
         val processors = ArrayList<PermissionProcessor>(4).apply { add(DirectProcessor()) }
+        if (plugin.configuration[ConfigKeys.APPLYING_REGEX]) processors.add(RegexProcessor())
+        if (plugin.configuration[ConfigKeys.APPLYING_WILDCARDS]) processors.add(WildcardProcessor())
+        if (plugin.configuration[ConfigKeys.APPLYING_WILDCARDS_SPONGE]) processors.add(SpongeWildcardProcessor())
 
-        if (plugin.configuration[ConfigKeys.APPLYING_REGEX]) processors += RegexProcessor()
-        if (plugin.configuration[ConfigKeys.APPLYING_WILDCARDS]) processors += WildcardProcessor()
-        if (plugin.configuration[ConfigKeys.APPLYING_WILDCARDS_SPONGE]) processors += SpongeWildcardProcessor()
+        val op = queryOptions.option(KryptonContextManager.OPERATOR_OPTION).orElse(false)
+        if (op) processors.add(OperatorProcessor)
 
         return PermissionCalculator(plugin, metadata, processors)
     }

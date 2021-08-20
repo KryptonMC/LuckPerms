@@ -25,78 +25,88 @@
 
 package me.lucko.luckperms.krypton
 
+import com.google.inject.Inject
 import me.lucko.luckperms.common.plugin.bootstrap.LuckPermsBootstrap
 import me.lucko.luckperms.common.plugin.logging.Log4jPluginLogger
 import net.luckperms.api.platform.Platform
-import org.kryptonmc.krypton.api.plugin.Plugin
-import org.kryptonmc.krypton.api.plugin.PluginContext
+import org.apache.logging.log4j.Logger
+import org.kryptonmc.api.Server
+import org.kryptonmc.api.event.Listener
+import org.kryptonmc.api.event.ListenerPriority
+import org.kryptonmc.api.event.server.ServerStartEvent
+import org.kryptonmc.api.event.server.ServerStopEvent
+import org.kryptonmc.api.plugin.PluginDescription
+import org.kryptonmc.api.plugin.annotation.DataFolder
+import org.kryptonmc.api.plugin.annotation.Plugin
 import java.nio.file.Path
 import java.time.Instant
-import java.util.*
+import java.util.Optional
+import java.util.UUID
 import java.util.concurrent.CountDownLatch
 
 /**
  * Bootstrap plugin for LuckPerms running on Krypton.
  */
-class LPKryptonBootstrap(context: PluginContext) : Plugin(context), LuckPermsBootstrap {
-
-    val server = context.server
+@Plugin("luckperms", "LuckPerms", "@version@", "A permissions plugin", ["Luck"])
+class LPKryptonBootstrap @Inject constructor(
+    val server: Server,
+    logger: Logger,
+    @DataFolder private val folder: Path,
+    private val description: PluginDescription,
+) : LuckPermsBootstrap {
 
     private val plugin = LPKryptonPlugin(this)
+    private val logger = Log4jPluginLogger(logger)
+    private val schedulerAdapter = KryptonSchedulerAdapter(this, server.scheduler)
+    private val classPathAppender = KryptonClassPathAppender(this)
 
     private val loadLatch = CountDownLatch(1)
     private val enableLatch = CountDownLatch(1)
 
     private lateinit var startTime: Instant
 
-    private var serverStarting = false
-    private var serverStopping = false
-
-    init {
+    @Listener(ListenerPriority.MAXIMUM)
+    fun onStart(event: ServerStartEvent) {
+        startTime = Instant.now()
         try {
             plugin.load()
         } finally {
             loadLatch.countDown()
         }
-    }
 
-    override fun initialize() {
-        serverStarting = true
-        startTime = Instant.now()
         try {
             plugin.enable()
-            server.scheduler.run(this) { serverStarting = false }
         } finally {
             enableLatch.countDown()
         }
     }
 
-    override fun shutdown() {
-        serverStopping = true
+    @Listener(ListenerPriority.NONE)
+    fun onStop(event: ServerStopEvent) {
         plugin.disable()
     }
 
-    override fun getPluginLogger() = Log4jPluginLogger(context.logger)
+    override fun getPluginLogger() = logger
 
-    override fun getScheduler() = KryptonSchedulerAdapter(this, server.scheduler)
+    override fun getScheduler() = schedulerAdapter
 
-    override fun getClassPathAppender() = KryptonClassPathAppender(this)
+    override fun getClassPathAppender() = classPathAppender
 
     override fun getLoadLatch() = loadLatch
 
     override fun getEnableLatch() = enableLatch
 
-    override fun getVersion() = context.description.version
+    override fun getVersion() = description.version
 
     override fun getStartupTime() = startTime
 
     override fun getType() = Platform.Type.KRYPTON
 
-    override fun getServerBrand() = server.info.name
+    override fun getServerBrand() = server.platform.name
 
-    override fun getServerVersion() = "${server.info.version} (for Minecraft ${server.info.minecraftVersion})"
+    override fun getServerVersion() = "${server.platform.version} (for Minecraft ${server.platform.minecraftVersion})"
 
-    override fun getDataDirectory(): Path = context.folder.toPath()
+    override fun getDataDirectory(): Path = folder
 
     override fun getPlayer(uniqueId: UUID) = Optional.ofNullable(server.player(uniqueId))
 
@@ -110,5 +120,5 @@ class LPKryptonBootstrap(context: PluginContext) : Plugin(context), LuckPermsBoo
 
     override fun getOnlinePlayers() = server.players.map { it.uuid }
 
-    override fun isPlayerOnline(uniqueId: UUID) = uniqueId in server.players.map { it.uuid }
+    override fun isPlayerOnline(uniqueId: UUID) = server.player(uniqueId) != null
 }

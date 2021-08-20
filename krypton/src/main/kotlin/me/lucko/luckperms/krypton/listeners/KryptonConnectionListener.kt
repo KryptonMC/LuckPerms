@@ -30,88 +30,67 @@ import me.lucko.luckperms.common.locale.Message
 import me.lucko.luckperms.common.locale.TranslationManager
 import me.lucko.luckperms.common.plugin.util.AbstractConnectionListener
 import me.lucko.luckperms.krypton.LPKryptonPlugin
-import net.kyori.adventure.text.Component
-import org.kryptonmc.krypton.api.event.Listener
-import org.kryptonmc.krypton.api.event.ListenerPriority
-import org.kryptonmc.krypton.api.event.events.login.JoinEvent
-import org.kryptonmc.krypton.api.event.events.login.LoginEvent
-import org.kryptonmc.krypton.api.event.events.play.QuitEvent
-import java.lang.Exception
-import java.util.*
+import me.lucko.luckperms.krypton.PlayerPermissionProvider
+import org.kryptonmc.api.entity.player.Player
+import org.kryptonmc.api.event.Listener
+import org.kryptonmc.api.event.ListenerPriority
+import org.kryptonmc.api.event.player.JoinEvent
+import org.kryptonmc.api.event.player.JoinResult
+import org.kryptonmc.api.event.player.QuitEvent
+import org.kryptonmc.api.event.server.SetupPermissionsEvent
+import java.util.Collections
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractConnectionListener(plugin) {
 
-    private val deniedAsyncLogin = mutableSetOf<UUID>()
-    private val deniedLogin = mutableSetOf<UUID>()
+    private val deniedLogin = Collections.synchronizedSet(HashSet<UUID>())
 
-    @Listener(ListenerPriority.HIGH)
-    fun onLogin(event: LoginEvent) {
-        plugin.bootstrap.enableLatch.await(60, TimeUnit.SECONDS)
-
-        if (plugin.configuration.get(ConfigKeys.DEBUG_LOGINS)) {
-            plugin.logger.info("Processing login for ${event.uuid} - ${event.username}")
-        }
-
-        if (event.isCancelled) {
-            plugin.logger.info("Another plugin has cancelled the connection for ${event.uuid} - ${event.username}. No permissions data will be loaded.")
-            deniedAsyncLogin += event.uuid
-            return
-        }
+    @Listener
+    fun onPlayerPermissionsSetup(event: SetupPermissionsEvent) {
+        if (event.subject !is Player) return
+        val player = event.subject as Player
+        if (plugin.configuration[ConfigKeys.DEBUG_LOGINS]) plugin.logger.info("Processing pre-login for ${player.uuid} - ${player.name}")
 
         try {
-            val user = loadUser(event.uuid, event.username)
-            recordConnection(event.uuid)
-            plugin.eventDispatcher.dispatchPlayerLoginProcess(event.uuid, event.username, user)
+            val user = loadUser(player.uuid, player.name)
+            recordConnection(player.uuid)
+            event.provider = PlayerPermissionProvider(player, user, plugin.contextManager.getCacheFor(player))
+            plugin.eventDispatcher.dispatchPlayerLoginProcess(player.uuid, player.name, user)
         } catch (exception: Exception) {
-            plugin.logger.severe("Exception occurred whilst loading data for ${event.uuid} - ${event.username}", exception)
-            deniedAsyncLogin += event.uuid
-
-            val reason = TranslationManager.render(Message.LOADING_DATABASE_ERROR.build())
-            event.cancel(reason)
-            plugin.eventDispatcher.dispatchPlayerLoginProcess(event.uuid, event.username, null)
-        }
-    }
-
-    @Listener(-128) // lowest possible priority, for monitoring
-    fun onLoginMonitor(event: LoginEvent) {
-        if (deniedAsyncLogin.remove(event.uuid) && !event.isCancelled) {
-            plugin.logger.severe("Player connection was re-allowed for ${event.uuid}")
-            event.cancel(Component.empty())
+            plugin.logger.severe("Exception occurred whilst loading data for ${player.uuid} - ${player.name}", exception)
+            if (plugin.configuration[ConfigKeys.CANCEL_FAILED_LOGINS]) deniedLogin.add(player.uuid)
+            plugin.eventDispatcher.dispatchPlayerLoginProcess(player.uuid, player.name, null)
         }
     }
 
     @Listener(ListenerPriority.MAXIMUM)
     fun onJoin(event: JoinEvent) {
+        if (!deniedLogin.remove(event.player.uuid)) return
+        event.result = JoinResult.denied(TranslationManager.render(Message.LOADING_DATABASE_ERROR.build()))
+    }
+
+    @Listener
+    fun onNormalJoin(event: JoinEvent) {
         val player = event.player
-
-        if (plugin.configuration.get(ConfigKeys.DEBUG_LOGINS)) {
-            plugin.logger.info("Processing join for ${player.uuid} - ${player.name}")
-        }
-
         val user = plugin.userManager.getIfLoaded(player.uuid)
+        if (plugin.configuration.get(ConfigKeys.DEBUG_LOGINS)) plugin.logger.info("Processing join for ${player.uuid} - ${player.name}")
+        if (!event.result.isAllowed) return
 
         if (user == null) {
-            deniedLogin += player.uuid
-
             if (player.uuid !in uniqueConnections) {
                 plugin.logger.warn("User ${player.uuid} - ${player.name} doesn't have any data pre-loaded, they have never been processed during login in this session. Denying login.")
             } else {
                 plugin.logger.warn("User ${player.uuid} - ${player.name} doesn't currently have any data pre-loaded, but they have been processed before in this session. Denying login.")
             }
 
-            event.cancel(TranslationManager.render(Message.LOADING_STATE_ERROR.build(), player.locale))
-            return
-        }
-
-        plugin.contextManager.signalContextUpdate(player)
-    }
-
-    @Listener(-128) // lowest possible priority, for monitoring
-    fun onJoinMonitor(event: JoinEvent) {
-        if (deniedLogin.remove(event.player.uuid) && !event.isCancelled) {
-            plugin.logger.severe("Player connection was re-allowed for ${event.player.uuid}")
-            event.cancel(Component.empty())
+            if (plugin.configuration[ConfigKeys.CANCEL_FAILED_LOGINS]) {
+                event.result = JoinResult.denied(TranslationManager.render(Message.LOADING_STATE_ERROR.build()))
+            } else {
+                plugin.bootstrap.scheduler.asyncLater({
+                    Message.LOADING_STATE_ERROR.send(plugin.senderFactory.wrap(player))
+                }, 1, TimeUnit.SECONDS)
+            }
         }
     }
 

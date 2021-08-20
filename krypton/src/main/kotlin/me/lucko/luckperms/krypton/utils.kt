@@ -23,23 +23,19 @@
  *  SOFTWARE.
  */
 
-package me.lucko.luckperms.krypton.event
+package me.lucko.luckperms.krypton
 
-import me.lucko.luckperms.common.api.LuckPermsApiProvider
-import me.lucko.luckperms.common.event.AbstractEventBus
-import me.lucko.luckperms.krypton.LPKryptonPlugin
-import org.kryptonmc.krypton.api.plugin.Plugin
+import net.kyori.adventure.util.TriState
+import net.luckperms.api.util.Tristate
 
-// As Krypton doesn't yet allow plugins to be disabled at runtime (and may break if they try, not tested at all),
-// we just ignore unregistering handlers.
-class KryptonEventBus(plugin: LPKryptonPlugin, apiProvider: LuckPermsApiProvider) : AbstractEventBus<Plugin>(plugin, apiProvider) {
+fun TriState.toTristate() = when (this) {
+    TriState.TRUE -> Tristate.TRUE
+    TriState.FALSE -> Tristate.FALSE
+    TriState.NOT_SET -> Tristate.UNDEFINED
+}
 
-    init {
-        plugin.bootstrap.registerListener(this)
-    }
-
-    override fun checkPlugin(plugin: Any): Plugin {
-        if (plugin !is Plugin) throw IllegalArgumentException("Object $plugin (${plugin.javaClass.name}) is not a plugin.")
-        return plugin
-    }
+fun Tristate.toTriState() = when (this) {
+    Tristate.TRUE -> TriState.TRUE
+    Tristate.FALSE -> TriState.FALSE
+    Tristate.UNDEFINED -> TriState.NOT_SET
 }
