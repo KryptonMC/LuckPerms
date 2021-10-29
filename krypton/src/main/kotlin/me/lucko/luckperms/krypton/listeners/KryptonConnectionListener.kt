@@ -50,17 +50,19 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
     fun onPlayerPermissionsSetup(event: SetupPermissionsEvent) {
         if (event.subject !is Player) return
         val player = event.subject as Player
-        if (plugin.configuration[ConfigKeys.DEBUG_LOGINS]) plugin.logger.info("Processing pre-login for ${player.uuid} - ${player.name}")
+        if (plugin.configuration[ConfigKeys.DEBUG_LOGINS]) {
+            plugin.logger.info("Processing pre-login for ${player.uuid} - ${player.profile.name}")
+        }
 
         try {
-            val user = loadUser(player.uuid, player.name)
+            val user = loadUser(player.uuid, player.profile.name)
             recordConnection(player.uuid)
             event.provider = PlayerPermissionProvider(player, user, plugin.contextManager.getCacheFor(player))
-            plugin.eventDispatcher.dispatchPlayerLoginProcess(player.uuid, player.name, user)
+            plugin.eventDispatcher.dispatchPlayerLoginProcess(player.uuid, player.profile.name, user)
         } catch (exception: Exception) {
-            plugin.logger.severe("Exception occurred whilst loading data for ${player.uuid} - ${player.name}", exception)
+            plugin.logger.severe("Exception occurred whilst loading data for ${player.uuid} - ${player.profile.name}", exception)
             if (plugin.configuration[ConfigKeys.CANCEL_FAILED_LOGINS]) deniedLogin.add(player.uuid)
-            plugin.eventDispatcher.dispatchPlayerLoginProcess(player.uuid, player.name, null)
+            plugin.eventDispatcher.dispatchPlayerLoginProcess(player.uuid, player.profile.name, null)
         }
     }
 
@@ -79,9 +81,11 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
 
         if (user == null) {
             if (player.uuid !in uniqueConnections) {
-                plugin.logger.warn("User ${player.uuid} - ${player.name} doesn't have any data pre-loaded, they have never been processed during login in this session. Denying login.")
+                plugin.logger.warn("User ${player.uuid} - ${player.name} doesn't have any data pre-loaded, they have never been processed " +
+                    "during login in this session. Denying login.")
             } else {
-                plugin.logger.warn("User ${player.uuid} - ${player.name} doesn't currently have any data pre-loaded, but they have been processed before in this session. Denying login.")
+                plugin.logger.warn("User ${player.uuid} - ${player.name} doesn't currently have any data pre-loaded, but they have been " +
+                    "processed before in this session. Denying login.")
             }
 
             if (plugin.configuration[ConfigKeys.CANCEL_FAILED_LOGINS]) {

@@ -60,7 +60,13 @@ class MonitoringPermissionCheckListener(private val plugin: LPKryptonPlugin) {
         override fun get(permission: String): TriState {
             val setting = delegate[permission]
             val result = setting.toTristate()
-            plugin.verboseHandler.offerPermissionCheckEvent(PermissionCheckEvent.Origin.PLATFORM_LOOKUP_CHECK, verboseCheckTarget, QueryOptionsImpl.DEFAULT_CONTEXTUAL, permission, TristateResult.of(result))
+            plugin.verboseHandler.offerPermissionCheckEvent(
+                PermissionCheckEvent.Origin.PLATFORM_LOOKUP_CHECK,
+                verboseCheckTarget,
+                QueryOptionsImpl.DEFAULT_CONTEXTUAL,
+                permission,
+                TristateResult.of(result)
+            )
             plugin.permissionRegistry.offer(permission)
             return setting
         }

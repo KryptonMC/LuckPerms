@@ -112,11 +112,11 @@ class LPKryptonBootstrap @Inject constructor(
 
     override fun lookupUniqueId(username: String) = Optional.ofNullable(server.player(username)?.uuid)
 
-    override fun lookupUsername(uniqueId: UUID) = Optional.ofNullable(server.player(uniqueId)?.name)
+    override fun lookupUsername(uniqueId: UUID) = Optional.ofNullable(server.player(uniqueId)?.profile?.name)
 
     override fun getPlayerCount() = server.players.size
 
-    override fun getPlayerList() = server.players.map { it.name }
+    override fun getPlayerList() = server.players.map { it.profile.name }
 
     override fun getOnlinePlayers() = server.players.map { it.uuid }
 

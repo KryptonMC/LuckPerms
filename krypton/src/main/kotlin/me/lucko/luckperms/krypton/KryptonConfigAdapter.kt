@@ -26,10 +26,10 @@
 package me.lucko.luckperms.krypton
 
 import me.lucko.luckperms.common.config.generic.adapter.ConfigurationAdapter
+import org.spongepowered.configurate.CommentedConfigurationNode
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader
 import org.spongepowered.configurate.kotlin.extensions.get
 import org.spongepowered.configurate.kotlin.extensions.getList
-import java.io.IOException
 import java.nio.file.Path
 
 class KryptonConfigAdapter(
@@ -37,18 +37,12 @@ class KryptonConfigAdapter(
     private val path: Path
 ) : ConfigurationAdapter {
 
-    private var root = try {
-        HoconConfigurationLoader.builder().path(path).build().load()
-    } catch (exception: IOException) {
-        throw RuntimeException(exception)
-    }
+    private var root = load()
 
     override fun getPlugin() = plugin
 
-    override fun reload() = try {
-        root = HoconConfigurationLoader.builder().path(path).build().load()
-    } catch (exception: IOException) {
-        throw RuntimeException(exception)
+    override fun reload() {
+        root = load()
     }
 
     override fun getString(path: String, def: String?): String? = def?.let { path.resolve().getString(it) }
@@ -76,4 +70,10 @@ class KryptonConfigAdapter(
     }
 
     private fun String.resolve() = root.node(split('.'))
+
+    private fun load(): CommentedConfigurationNode = try {
+        HoconConfigurationLoader.builder().path(path).build().load()
+    } catch (exception: Exception) {
+        throw RuntimeException(exception)
+    }
 }

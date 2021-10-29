@@ -25,8 +25,31 @@
 
 package me.lucko.luckperms.krypton.messaging
 
+import me.lucko.luckperms.common.messaging.InternalMessagingService
+import me.lucko.luckperms.common.messaging.LuckPermsMessagingService
 import me.lucko.luckperms.common.messaging.MessagingFactory
 import me.lucko.luckperms.krypton.LPKryptonPlugin
+import net.luckperms.api.messenger.IncomingMessageConsumer
+import net.luckperms.api.messenger.Messenger
+import net.luckperms.api.messenger.MessengerProvider
 
-// TODO: Add more messaging services when supported
-class KryptonMessagingFactory(plugin: LPKryptonPlugin) : MessagingFactory<LPKryptonPlugin>(plugin)
+class KryptonMessagingFactory(plugin: LPKryptonPlugin) : MessagingFactory<LPKryptonPlugin>(plugin) {
+
+    override fun getServiceFor(messagingType: String?): InternalMessagingService {
+        if (messagingType == "pluginmsg" || messagingType == "bungee" || messagingType == "velocity") {
+            try {
+                return LuckPermsMessagingService(plugin, PluginMessageMessengerProvider())
+            } catch (exception: Exception) {
+                exception.printStackTrace()
+            }
+        }
+        return super.getServiceFor(messagingType)
+    }
+
+    private inner class PluginMessageMessengerProvider : MessengerProvider {
+
+        override fun getName(): String = "PluginMessage"
+
+        override fun obtain(consumer: IncomingMessageConsumer): Messenger = PluginMessageMessenger(plugin, consumer)
+    }
+}

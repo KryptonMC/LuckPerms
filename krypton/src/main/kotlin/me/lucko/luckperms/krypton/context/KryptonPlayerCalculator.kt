@@ -27,17 +27,17 @@ package me.lucko.luckperms.krypton.context
 
 import me.lucko.luckperms.common.config.ConfigKeys
 import me.lucko.luckperms.common.context.contextset.ImmutableContextSetImpl
-import me.lucko.luckperms.common.util.EnumNamer
 import me.lucko.luckperms.krypton.LPKryptonPlugin
 import net.luckperms.api.context.Context
 import net.luckperms.api.context.ContextCalculator
 import net.luckperms.api.context.ContextConsumer
+import net.luckperms.api.context.ContextSet
 import net.luckperms.api.context.DefaultContextKeys
 import org.kryptonmc.api.entity.player.Player
-import org.kryptonmc.api.world.Gamemode
+import org.kryptonmc.api.registry.Registries
 
 // TODO: Add event listening for gamemode and world changes and joining worlds to signal context updates
-// when Krypton supports this
+//  when Krypton supports this
 class KryptonPlayerCalculator(
     private val plugin: LPKryptonPlugin,
     disabled: Set<String>
@@ -47,29 +47,26 @@ class KryptonPlayerCalculator(
     private val world = DefaultContextKeys.WORLD_KEY !in disabled
     private val dimensionType = DefaultContextKeys.DIMENSION_TYPE_KEY !in disabled
 
-    // TODO: Add more checking here when Krypton supports per player worlds and gamemodes
     override fun calculate(target: Player, consumer: ContextConsumer) {
-        if (gamemode) consumer.accept(DefaultContextKeys.GAMEMODE_KEY, GAMEMODE_NAMER.name(target.gamemode))
+        if (gamemode) consumer.accept(DefaultContextKeys.GAMEMODE_KEY, target.gameMode.name)
         val world = target.world
-        val dimension = world.dimension
-        if (dimensionType) consumer.accept(DefaultContextKeys.DIMENSION_TYPE_KEY, dimension.location.value())
+        val dimension = world.dimensionType
+        if (dimensionType) consumer.accept(DefaultContextKeys.DIMENSION_TYPE_KEY, dimension.key().value())
         if (this.world) plugin.configuration[ConfigKeys.WORLD_REWRITES].rewriteAndSubmit(world.name, consumer)
     }
 
-    override fun estimatePotentialContexts() = ImmutableContextSetImpl.BuilderImpl().apply {
-        if (gamemode) Gamemode.values().forEach { add(DefaultContextKeys.GAMEMODE_KEY, GAMEMODE_NAMER.name(it)) }
-        if (dimensionType) {
-            add(DefaultContextKeys.DIMENSION_TYPE_KEY, "overworld")
-            add(DefaultContextKeys.DIMENSION_TYPE_KEY, "the_nether")
-            add(DefaultContextKeys.DIMENSION_TYPE_KEY, "the_end")
+    override fun estimatePotentialContexts(): ContextSet {
+        val builder = ImmutableContextSetImpl.BuilderImpl()
+        if (gamemode) Registries.GAME_MODES.values.forEach {
+            builder.add(DefaultContextKeys.GAMEMODE_KEY, it.name)
         }
-        if (world) plugin.bootstrap.server.worldManager.worlds.forEach { (_, world) ->
-            if (Context.isValidValue(world.name)) add(DefaultContextKeys.WORLD_KEY, world.name)
+        if (dimensionType) Registries.DIMENSION_TYPE.values.forEach {
+            builder.add(DefaultContextKeys.DIMENSION_TYPE_KEY, it.key().asString().removePrefix("minecraft:"))
         }
-    }.build()
-
-    companion object {
-
-        private val GAMEMODE_NAMER = EnumNamer(Gamemode::class.java, EnumNamer.LOWER_CASE_NAME)
+        if (world) plugin.bootstrap.server.worldManager.worlds.values.forEach {
+            val name = it.name
+            if (Context.isValidValue(name)) builder.add(DefaultContextKeys.WORLD_KEY, name)
+        }
+        return builder.build()
     }
 }

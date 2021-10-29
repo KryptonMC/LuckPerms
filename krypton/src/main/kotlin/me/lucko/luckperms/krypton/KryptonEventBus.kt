@@ -29,7 +29,10 @@ import me.lucko.luckperms.common.api.LuckPermsApiProvider
 import me.lucko.luckperms.common.event.AbstractEventBus
 import org.kryptonmc.api.plugin.PluginContainer
 
-class KryptonEventBus(private val plugin: LPKryptonPlugin, apiProvider: LuckPermsApiProvider) : AbstractEventBus<PluginContainer>(plugin, apiProvider) {
+class KryptonEventBus(
+    private val plugin: LPKryptonPlugin,
+    apiProvider: LuckPermsApiProvider
+) : AbstractEventBus<PluginContainer>(plugin, apiProvider) {
 
     override fun checkPlugin(plugin: Any): PluginContainer {
         if (plugin is PluginContainer) return plugin

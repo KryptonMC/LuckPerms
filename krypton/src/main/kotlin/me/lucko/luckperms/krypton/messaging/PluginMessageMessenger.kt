@@ -23,37 +23,36 @@
  *  SOFTWARE.
  */
 
-package me.lucko.luckperms.krypton
+package me.lucko.luckperms.krypton.messaging
 
-import me.lucko.luckperms.common.plugin.scheduler.SchedulerAdapter
-import me.lucko.luckperms.common.plugin.scheduler.SchedulerTask
-import org.kryptonmc.api.scheduling.Scheduler
-import org.kryptonmc.api.scheduling.Task
-import java.util.concurrent.Executor
+import me.lucko.luckperms.krypton.LPKryptonPlugin
+import net.kyori.adventure.key.Key
+import net.luckperms.api.messenger.IncomingMessageConsumer
+import net.luckperms.api.messenger.Messenger
+import net.luckperms.api.messenger.message.OutgoingMessage
+import org.kryptonmc.api.event.Listener
+import org.kryptonmc.api.event.player.PluginMessageEvent
 import java.util.concurrent.TimeUnit
 
-class KryptonSchedulerAdapter(private val bootstrap: LPKryptonBootstrap, private val scheduler: Scheduler) : SchedulerAdapter {
+class PluginMessageMessenger(private val plugin: LPKryptonPlugin, private val consumer: IncomingMessageConsumer) : Messenger {
 
-    private val executor = Executor { command -> scheduler.run(bootstrap) { command.run() } }
-    private val tasks = mutableSetOf<Task>()
-
-    override fun sync() = executor
-
-    override fun async() = executor
-
-    override fun asyncLater(task: Runnable, delay: Long, unit: TimeUnit): SchedulerTask {
-        val scheduledTask = scheduler.schedule(bootstrap, delay, unit) { task.run() }
-        tasks += scheduledTask
-        return SchedulerTask { scheduledTask.cancel() }
+    @Listener
+    fun onMessage(event: PluginMessageEvent) {
+        if (event.channel != CHANNEL) return
+        consumer.consumeIncomingMessageAsString(event.message.decodeToString())
     }
 
-    override fun asyncRepeating(task: Runnable, interval: Long, unit: TimeUnit): SchedulerTask {
-        val scheduledTask = scheduler.schedule(bootstrap, interval, interval, unit) { task.run() }
-        tasks += scheduledTask
-        return SchedulerTask { scheduledTask.cancel() }
+    override fun sendOutgoingMessage(outgoingMessage: OutgoingMessage) {
+        val data = outgoingMessage.asEncodedString().encodeToByteArray()
+        plugin.bootstrap.server.scheduler.schedule(plugin.bootstrap, 0L, 5L, TimeUnit.SECONDS) {
+            val player = plugin.bootstrap.server.players.firstOrNull() ?: return@schedule
+            player.sendPluginMessage(CHANNEL, data)
+            it.cancel()
+        }
     }
 
-    override fun shutdownScheduler() = tasks.forEach { it.cancel() }
+    companion object {
 
-    override fun shutdownExecutor() {}
+        private val CHANNEL = Key.key("luckperms", "update")
+    }
 }
