@@ -51,10 +51,11 @@ import java.util.concurrent.CountDownLatch
 class LPKryptonBootstrap @Inject constructor(
     val server: Server,
     logger: Logger,
-    @DataFolder private val folder: Path,
+    @DataFolder folder: Path,
     private val description: PluginDescription,
 ) : LuckPermsBootstrap {
 
+    private val folder = folder.toAbsolutePath()
     private val plugin = LPKryptonPlugin(this)
     private val logger = Log4jPluginLogger(logger)
     private val schedulerAdapter = KryptonSchedulerAdapter(this, server.scheduler)
