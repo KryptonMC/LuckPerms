@@ -48,7 +48,7 @@ class KryptonPlayerCalculator(
     private val dimensionType = DefaultContextKeys.DIMENSION_TYPE_KEY !in disabled
 
     override fun calculate(target: Player, consumer: ContextConsumer) {
-        if (gamemode) consumer.accept(DefaultContextKeys.GAMEMODE_KEY, target.gameMode.name)
+        if (gamemode) consumer.accept(DefaultContextKeys.GAMEMODE_KEY, target.gameMode.key().value())
         val world = target.world
         val dimension = world.dimensionType
         if (dimensionType) consumer.accept(DefaultContextKeys.DIMENSION_TYPE_KEY, dimension.key().value())
@@ -58,7 +58,7 @@ class KryptonPlayerCalculator(
     override fun estimatePotentialContexts(): ContextSet {
         val builder = ImmutableContextSetImpl.BuilderImpl()
         if (gamemode) Registries.GAME_MODES.values.forEach {
-            builder.add(DefaultContextKeys.GAMEMODE_KEY, it.name)
+            builder.add(DefaultContextKeys.GAMEMODE_KEY, it.key().value())
         }
         if (dimensionType) Registries.DIMENSION_TYPE.values.forEach {
             builder.add(DefaultContextKeys.DIMENSION_TYPE_KEY, it.key().asString().removePrefix("minecraft:"))
