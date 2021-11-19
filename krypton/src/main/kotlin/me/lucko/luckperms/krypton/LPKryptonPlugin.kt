@@ -26,7 +26,11 @@
 package me.lucko.luckperms.krypton
 
 import me.lucko.luckperms.common.api.LuckPermsApiProvider
+import me.lucko.luckperms.common.calculator.CalculatorFactory
 import me.lucko.luckperms.common.config.ConfigKeys
+import me.lucko.luckperms.common.config.generic.adapter.ConfigurationAdapter
+import me.lucko.luckperms.common.event.AbstractEventBus
+import me.lucko.luckperms.common.messaging.MessagingFactory
 import me.lucko.luckperms.common.model.User
 import me.lucko.luckperms.common.model.manager.group.StandardGroupManager
 import me.lucko.luckperms.common.model.manager.track.StandardTrackManager
@@ -38,7 +42,9 @@ import me.lucko.luckperms.common.tasks.ExpireTemporaryTask
 import me.lucko.luckperms.krypton.calculator.KryptonCalculatorFactory
 import me.lucko.luckperms.krypton.context.KryptonContextManager
 import me.lucko.luckperms.krypton.context.KryptonPlayerCalculator
+import me.lucko.luckperms.krypton.listeners.KryptonAutoOpListener
 import me.lucko.luckperms.krypton.listeners.KryptonConnectionListener
+import me.lucko.luckperms.krypton.listeners.KryptonPlatformListener
 import me.lucko.luckperms.krypton.listeners.MonitoringPermissionCheckListener
 import me.lucko.luckperms.krypton.messaging.KryptonMessagingFactory
 import net.luckperms.api.LuckPerms
@@ -58,21 +64,22 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
     private lateinit var trackManager: StandardTrackManager
     private lateinit var contextManager: KryptonContextManager
 
-    override fun getBootstrap() = bootstrap
+    override fun getBootstrap(): LPKryptonBootstrap = bootstrap
 
     override fun setupSenderFactory() {
         senderFactory = KryptonSenderFactory(this)
     }
 
-    override fun provideConfigurationAdapter() = KryptonConfigAdapter(this, resolveConfig("config.conf"))
+    override fun provideConfigurationAdapter(): ConfigurationAdapter = KryptonConfigAdapter(this, resolveConfig("config.conf"))
 
     override fun registerPlatformListeners() {
         connectionListener = KryptonConnectionListener(this)
         bootstrap.server.eventManager.register(bootstrap, connectionListener)
         bootstrap.server.eventManager.register(bootstrap, MonitoringPermissionCheckListener(this))
+        bootstrap.server.eventManager.register(bootstrap, KryptonPlatformListener(this))
     }
 
-    override fun provideMessagingFactory() = KryptonMessagingFactory(this)
+    override fun provideMessagingFactory(): MessagingFactory<*> = KryptonMessagingFactory(this)
 
     override fun registerCommands() {
         commandManager = KryptonCommandExecutor(this)
@@ -85,29 +92,42 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
         trackManager = StandardTrackManager(this)
     }
 
-    override fun provideCalculatorFactory() = KryptonCalculatorFactory(this)
+    override fun provideCalculatorFactory(): CalculatorFactory = KryptonCalculatorFactory(this)
 
     override fun setupContextManager() {
         contextManager = KryptonContextManager(this)
         val playerCalculator = KryptonPlayerCalculator(this, configuration.get(ConfigKeys.DISABLED_CONTEXTS))
+        bootstrap.server.eventManager.register(bootstrap, playerCalculator)
         contextManager.registerCalculator(playerCalculator)
     }
 
-    override fun setupPlatformHooks() = Unit
-
-    override fun provideEventBus(apiProvider: LuckPermsApiProvider) = KryptonEventBus(this, apiProvider)
-
-    override fun registerApiOnPlatform(api: LuckPerms) = bootstrap.server.servicesManager.register(bootstrap, api)
-
-    override fun registerHousekeepingTasks() {
-        bootstrap.scheduler.asyncRepeating(ExpireTemporaryTask(this), 3, TimeUnit.SECONDS)
-        bootstrap.scheduler.asyncRepeating(CacheHousekeepingTask(this), 2, TimeUnit.MINUTES)
+    override fun setupPlatformHooks() {
+        // got nothing to do here
     }
 
-    override fun performFinalSetup() = Unit
+    override fun provideEventBus(apiProvider: LuckPermsApiProvider): AbstractEventBus<*> = KryptonEventBus(this, apiProvider)
 
-    override fun getQueryOptionsForUser(user: User): Optional<QueryOptions> =
-        bootstrap.getPlayer(user.uniqueId).map { contextManager.getQueryOptions(it) }
+    override fun registerApiOnPlatform(api: LuckPerms) {
+        bootstrap.server.servicesManager.register(bootstrap, api)
+    }
+
+    override fun performFinalSetup() {
+        // remove all operators on startup if they're disabled
+        if (!configuration[ConfigKeys.OPS_ENABLED]) {
+            bootstrap.server.scheduler.run(bootstrap) {
+                bootstrap.server.players.forEach { it.isOperator = false }
+            }
+        }
+
+        // register autoop listener
+        if (configuration[ConfigKeys.AUTO_OP]) {
+            apiProvider.eventBus.subscribe(KryptonAutoOpListener(this))
+        }
+    }
+
+    override fun getQueryOptionsForUser(user: User): Optional<QueryOptions> = bootstrap.getPlayer(user.uniqueId).map {
+        contextManager.getQueryOptions(it)
+    }
 
     override fun getOnlineSenders(): Stream<Sender> = Stream.concat(
         Stream.of(consoleSender),

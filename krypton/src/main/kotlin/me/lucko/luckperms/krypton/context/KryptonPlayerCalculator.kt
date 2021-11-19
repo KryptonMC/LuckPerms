@@ -26,18 +26,19 @@
 package me.lucko.luckperms.krypton.context
 
 import me.lucko.luckperms.common.config.ConfigKeys
-import me.lucko.luckperms.common.context.contextset.ImmutableContextSetImpl
 import me.lucko.luckperms.krypton.LPKryptonPlugin
 import net.luckperms.api.context.Context
 import net.luckperms.api.context.ContextCalculator
 import net.luckperms.api.context.ContextConsumer
 import net.luckperms.api.context.ContextSet
 import net.luckperms.api.context.DefaultContextKeys
+import net.luckperms.api.context.ImmutableContextSet
 import org.kryptonmc.api.entity.player.Player
+import org.kryptonmc.api.event.Listener
+import org.kryptonmc.api.event.player.JoinEvent
 import org.kryptonmc.api.registry.Registries
 
-// TODO: Add event listening for gamemode and world changes and joining worlds to signal context updates
-//  when Krypton supports this
+// TODO: Add event listening for gamemode and world changes to signal context updates when Krypton supports this
 class KryptonPlayerCalculator(
     private val plugin: LPKryptonPlugin,
     disabled: Set<String>
@@ -46,6 +47,11 @@ class KryptonPlayerCalculator(
     private val gamemode = DefaultContextKeys.GAMEMODE_KEY !in disabled
     private val world = DefaultContextKeys.WORLD_KEY !in disabled
     private val dimensionType = DefaultContextKeys.DIMENSION_TYPE_KEY !in disabled
+
+    @Listener
+    fun onJoinWorld(event: JoinEvent) {
+        if (world || dimensionType) plugin.contextManager.signalContextUpdate(event.player)
+    }
 
     override fun calculate(target: Player, consumer: ContextConsumer) {
         if (gamemode) consumer.accept(DefaultContextKeys.GAMEMODE_KEY, target.gameMode.key().value())
@@ -56,7 +62,7 @@ class KryptonPlayerCalculator(
     }
 
     override fun estimatePotentialContexts(): ContextSet {
-        val builder = ImmutableContextSetImpl.BuilderImpl()
+        val builder = ImmutableContextSet.builder()
         if (gamemode) Registries.GAME_MODES.values.forEach {
             builder.add(DefaultContextKeys.GAMEMODE_KEY, it.key().value())
         }

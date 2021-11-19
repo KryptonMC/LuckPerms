@@ -27,15 +27,15 @@ package me.lucko.luckperms.krypton.context
 
 import com.github.benmanes.caffeine.cache.LoadingCache
 import me.lucko.luckperms.common.config.ConfigKeys
-import me.lucko.luckperms.common.context.ContextManager
-import me.lucko.luckperms.common.context.QueryOptionsCache
-import me.lucko.luckperms.common.context.QueryOptionsSupplier
+import me.lucko.luckperms.common.context.manager.ContextManager
+import me.lucko.luckperms.common.context.manager.QueryOptionsCache
 import me.lucko.luckperms.common.util.CaffeineFactory
 import me.lucko.luckperms.krypton.LPKryptonPlugin
 import net.luckperms.api.context.ImmutableContextSet
 import net.luckperms.api.query.OptionKey
 import net.luckperms.api.query.QueryOptions
 import org.kryptonmc.api.entity.player.Player
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class KryptonContextManager(plugin: LPKryptonPlugin) : ContextManager<Player, Player>(plugin, Player::class.java, Player::class.java) {
@@ -44,9 +44,9 @@ class KryptonContextManager(plugin: LPKryptonPlugin) : ContextManager<Player, Pl
         .expireAfterAccess(1, TimeUnit.MINUTES)
         .build { QueryOptionsCache(it, this) }
 
-    override fun getUniqueId(player: Player) = player.uuid
+    override fun getUniqueId(player: Player): UUID = player.uuid
 
-    override fun getCacheFor(subject: Player) = subjectCaches[subject]!!
+    override fun getCacheFor(subject: Player): QueryOptionsCache<Player> = subjectCaches[subject]!!
 
     override fun invalidateCache(subject: Player) {
         subjectCaches.getIfPresent(subject)?.invalidate()
@@ -54,12 +54,13 @@ class KryptonContextManager(plugin: LPKryptonPlugin) : ContextManager<Player, Pl
 
     override fun formQueryOptions(subject: Player, contextSet: ImmutableContextSet): QueryOptions {
         val options = plugin.configuration[ConfigKeys.GLOBAL_QUERY_OPTIONS].toBuilder()
-        if (subject.permissionLevel > 0) options.option(OPERATOR_OPTION, true)
+        if (subject.isOperator) options.option(OPERATOR_OPTION, true)
         return options.context(contextSet).build()
     }
 
     companion object {
 
-        val OPERATOR_OPTION = OptionKey.of("op", Boolean::class.java)
+        @JvmField
+        val OPERATOR_OPTION: OptionKey<Boolean> = OptionKey.of("op", Boolean::class.java)
     }
 }

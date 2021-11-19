@@ -100,5 +100,7 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
 
     // Sit at the back of the queue so other plugins can still perform permission checks on this event
     @Listener(ListenerPriority.NONE)
-    fun onQuit(event: QuitEvent) = handleDisconnect(event.player.uuid)
+    fun onQuit(event: QuitEvent) {
+        handleDisconnect(event.player.uuid)
+    }
 }

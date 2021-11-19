@@ -29,6 +29,7 @@ import me.lucko.luckperms.common.locale.TranslationManager
 import me.lucko.luckperms.common.sender.Sender
 import me.lucko.luckperms.common.sender.SenderFactory
 import net.kyori.adventure.text.Component
+import net.luckperms.api.util.Tristate
 import org.kryptonmc.api.command.ConsoleSender
 import org.kryptonmc.api.command.Sender as KryptonSender
 import org.kryptonmc.api.entity.player.Player
@@ -51,13 +52,13 @@ class KryptonSenderFactory(private val plugin: LPKryptonPlugin) : SenderFactory<
         sender.sendMessage(TranslationManager.render(message, locale))
     }
 
-    override fun getPermissionValue(sender: KryptonSender, node: String) = sender.getPermissionValue(node).toTristate()
+    override fun getPermissionValue(sender: KryptonSender, node: String): Tristate = sender.getPermissionValue(node).toTristate()
 
-    override fun hasPermission(sender: KryptonSender, node: String) = sender.hasPermission(node)
+    override fun hasPermission(sender: KryptonSender, node: String): Boolean = sender.hasPermission(node)
 
     override fun performCommand(sender: KryptonSender, command: String) {
         plugin.bootstrap.server.commandManager.dispatch(sender, command)
     }
 
-    override fun isConsole(sender: KryptonSender) = sender is ConsoleSender
+    override fun isConsole(sender: KryptonSender): Boolean = sender is ConsoleSender
 }

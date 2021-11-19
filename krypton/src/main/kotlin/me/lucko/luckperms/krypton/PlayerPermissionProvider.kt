@@ -25,8 +25,9 @@
 
 package me.lucko.luckperms.krypton
 
-import me.lucko.luckperms.common.context.QueryOptionsSupplier
+import me.lucko.luckperms.common.context.manager.QueryOptionsSupplier
 import me.lucko.luckperms.common.model.User
+import net.kyori.adventure.util.TriState
 import org.kryptonmc.api.entity.player.Player
 import org.kryptonmc.api.permission.PermissionFunction
 import org.kryptonmc.api.permission.PermissionProvider
@@ -42,7 +43,7 @@ class PlayerPermissionProvider(
         check(subject === player) { "createFunction called with a different argument!" }
     }
 
-    override fun get(permission: String) = user.cachedData.getPermissionData(queryOptionsSupplier.queryOptions)
+    override fun get(permission: String): TriState = user.cachedData.getPermissionData(queryOptionsSupplier.queryOptions)
         .checkPermission(permission)
         .toTriState()
 }

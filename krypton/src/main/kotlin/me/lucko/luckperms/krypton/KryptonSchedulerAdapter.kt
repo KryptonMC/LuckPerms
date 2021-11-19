@@ -37,23 +37,27 @@ class KryptonSchedulerAdapter(private val bootstrap: LPKryptonBootstrap, private
     private val executor = Executor { command -> scheduler.run(bootstrap) { command.run() } }
     private val tasks = mutableSetOf<Task>()
 
-    override fun sync() = executor
+    override fun sync(): Executor = executor
 
-    override fun async() = executor
+    override fun async(): Executor = executor
 
     override fun asyncLater(task: Runnable, delay: Long, unit: TimeUnit): SchedulerTask {
         val scheduledTask = scheduler.schedule(bootstrap, delay, unit) { task.run() }
-        tasks += scheduledTask
+        tasks.add(scheduledTask)
         return SchedulerTask { scheduledTask.cancel() }
     }
 
     override fun asyncRepeating(task: Runnable, interval: Long, unit: TimeUnit): SchedulerTask {
         val scheduledTask = scheduler.schedule(bootstrap, interval, interval, unit) { task.run() }
-        tasks += scheduledTask
+        tasks.add(scheduledTask)
         return SchedulerTask { scheduledTask.cancel() }
     }
 
-    override fun shutdownScheduler() = tasks.forEach { it.cancel() }
+    override fun shutdownScheduler() {
+        tasks.forEach { it.cancel() }
+    }
 
-    override fun shutdownExecutor() {}
+    override fun shutdownExecutor() {
+        // do nothing
+    }
 }

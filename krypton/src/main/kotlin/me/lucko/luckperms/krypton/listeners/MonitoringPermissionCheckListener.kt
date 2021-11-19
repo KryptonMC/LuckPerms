@@ -50,7 +50,7 @@ class MonitoringPermissionCheckListener(private val plugin: LPKryptonPlugin) {
 
     private inner class MonitoredPermissionProvider(private val delegate: PermissionProvider) : PermissionProvider {
 
-        override fun createFunction(subject: Subject) = MonitoredPermissionFunction(subject, delegate.createFunction(subject))
+        override fun createFunction(subject: Subject): PermissionFunction = MonitoredPermissionFunction(subject, delegate.createFunction(subject))
     }
 
     private inner class MonitoredPermissionFunction(subject: Subject, private val delegate: PermissionFunction) : PermissionFunction {

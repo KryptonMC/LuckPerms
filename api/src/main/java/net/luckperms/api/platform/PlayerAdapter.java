@@ -55,7 +55,7 @@ import java.util.UUID;
  * <li>{@code org.spongepowered.api/entity.living.player.Player}</li>
  * <li>{@code cn.nukkit.Player}</li>
  * <li>{@code com.velocitypowered.api.proxy.Player}</li>
- * <li>{@code org.kryptonmc.krypton.api.entity.entities.Player}</li>
+ * <li>{@code org.kryptonmc.api.entity.player.Player}</li>
  * </ul>
  *
  * @param <T> the player type

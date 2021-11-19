@@ -30,5 +30,7 @@ import java.nio.file.Path
 
 class KryptonClassPathAppender(private val bootstrap: LPKryptonBootstrap) : ClassPathAppender {
 
-    override fun addJarToClasspath(file: Path) = bootstrap.server.pluginManager.addToClasspath(bootstrap, file)
+    override fun addJarToClasspath(file: Path) {
+        bootstrap.server.pluginManager.addToClasspath(bootstrap, file)
+    }
 }

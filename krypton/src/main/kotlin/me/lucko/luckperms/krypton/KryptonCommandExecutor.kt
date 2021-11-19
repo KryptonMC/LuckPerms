@@ -33,7 +33,9 @@ import org.kryptonmc.api.command.meta.commandMeta
 
 class KryptonCommandExecutor(private val plugin: LPKryptonPlugin) : CommandManager(plugin), RawCommand {
 
-    fun register() = plugin.bootstrap.server.commandManager.register(this, commandMeta(NAME) { aliases(ALIASES) })
+    fun register() {
+        plugin.bootstrap.server.commandManager.register(this, commandMeta(NAME) { aliases(ALIASES) })
+    }
 
     override fun execute(sender: Sender, args: String) {
         val wrapped = plugin.senderFactory.wrap(sender)

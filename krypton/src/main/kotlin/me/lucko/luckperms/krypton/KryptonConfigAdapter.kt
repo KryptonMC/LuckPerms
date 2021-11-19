@@ -26,7 +26,9 @@
 package me.lucko.luckperms.krypton
 
 import me.lucko.luckperms.common.config.generic.adapter.ConfigurationAdapter
+import me.lucko.luckperms.common.plugin.LuckPermsPlugin
 import org.spongepowered.configurate.CommentedConfigurationNode
+import org.spongepowered.configurate.ConfigurationNode
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader
 import org.spongepowered.configurate.kotlin.extensions.get
 import org.spongepowered.configurate.kotlin.extensions.getList
@@ -39,17 +41,21 @@ class KryptonConfigAdapter(
 
     private var root = load()
 
-    override fun getPlugin() = plugin
+    override fun getPlugin(): LuckPermsPlugin = plugin
 
     override fun reload() {
         root = load()
     }
 
-    override fun getString(path: String, def: String?): String? = def?.let { path.resolve().getString(it) }
+    override fun getString(path: String, def: String?): String? {
+        val resolved = path.resolve()
+        if (def != null) return resolved.getString(def)
+        return resolved.string
+    }
 
-    override fun getInteger(path: String, def: Int) = path.resolve().getInt(def)
+    override fun getInteger(path: String, def: Int): Int = path.resolve().getInt(def)
 
-    override fun getBoolean(path: String, def: Boolean) = path.resolve().getBoolean(def)
+    override fun getBoolean(path: String, def: Boolean): Boolean = path.resolve().getBoolean(def)
 
     override fun getStringList(path: String, def: List<String>): List<String> {
         val node = path.resolve()
@@ -69,11 +75,13 @@ class KryptonConfigAdapter(
         return node.get(def)
     }
 
-    private fun String.resolve() = root.node(split('.'))
+    private fun String.resolve(): ConfigurationNode = root.node(split('.'))
 
-    private fun load(): CommentedConfigurationNode = try {
-        HoconConfigurationLoader.builder().path(path).build().load()
-    } catch (exception: Exception) {
-        throw RuntimeException(exception)
+    private fun load(): CommentedConfigurationNode {
+        return try {
+            HoconConfigurationLoader.builder().path(path).build().load()
+        } catch (exception: Exception) {
+            throw RuntimeException(exception)
+        }
     }
 }

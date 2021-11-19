@@ -27,10 +27,14 @@ package me.lucko.luckperms.krypton
 
 import com.google.inject.Inject
 import me.lucko.luckperms.common.plugin.bootstrap.LuckPermsBootstrap
+import me.lucko.luckperms.common.plugin.classpath.ClassPathAppender
 import me.lucko.luckperms.common.plugin.logging.Log4jPluginLogger
+import me.lucko.luckperms.common.plugin.logging.PluginLogger
+import me.lucko.luckperms.common.plugin.scheduler.SchedulerAdapter
 import net.luckperms.api.platform.Platform
 import org.apache.logging.log4j.Logger
 import org.kryptonmc.api.Server
+import org.kryptonmc.api.entity.player.Player
 import org.kryptonmc.api.event.Listener
 import org.kryptonmc.api.event.ListenerPriority
 import org.kryptonmc.api.event.server.ServerStartEvent
@@ -68,13 +72,13 @@ class LPKryptonBootstrap @Inject constructor(
 
     @Listener(ListenerPriority.MAXIMUM)
     fun onStart(event: ServerStartEvent) {
-        startTime = Instant.now()
         try {
             plugin.load()
         } finally {
             loadLatch.countDown()
         }
 
+        startTime = Instant.now()
         try {
             plugin.enable()
         } finally {
@@ -87,39 +91,39 @@ class LPKryptonBootstrap @Inject constructor(
         plugin.disable()
     }
 
-    override fun getPluginLogger() = logger
+    override fun getPluginLogger(): PluginLogger = logger
 
-    override fun getScheduler() = schedulerAdapter
+    override fun getScheduler(): SchedulerAdapter = schedulerAdapter
 
-    override fun getClassPathAppender() = classPathAppender
+    override fun getClassPathAppender(): ClassPathAppender = classPathAppender
 
-    override fun getLoadLatch() = loadLatch
+    override fun getLoadLatch(): CountDownLatch = loadLatch
 
-    override fun getEnableLatch() = enableLatch
+    override fun getEnableLatch(): CountDownLatch = enableLatch
 
-    override fun getVersion() = description.version
+    override fun getVersion(): String = description.version
 
-    override fun getStartupTime() = startTime
+    override fun getStartupTime(): Instant = startTime
 
-    override fun getType() = Platform.Type.KRYPTON
+    override fun getType(): Platform.Type = Platform.Type.KRYPTON
 
-    override fun getServerBrand() = server.platform.name
+    override fun getServerBrand(): String = server.platform.name
 
-    override fun getServerVersion() = "${server.platform.version} (for Minecraft ${server.platform.minecraftVersion})"
+    override fun getServerVersion(): String = "${server.platform.version} (for Minecraft ${server.platform.minecraftVersion})"
 
     override fun getDataDirectory(): Path = folder
 
-    override fun getPlayer(uniqueId: UUID) = Optional.ofNullable(server.player(uniqueId))
+    override fun getPlayer(uniqueId: UUID): Optional<Player> = Optional.ofNullable(server.player(uniqueId))
 
-    override fun lookupUniqueId(username: String) = Optional.ofNullable(server.player(username)?.uuid)
+    override fun lookupUniqueId(username: String): Optional<UUID> = Optional.ofNullable(server.player(username)?.uuid)
 
-    override fun lookupUsername(uniqueId: UUID) = Optional.ofNullable(server.player(uniqueId)?.profile?.name)
+    override fun lookupUsername(uniqueId: UUID): Optional<String> = Optional.ofNullable(server.player(uniqueId)?.profile?.name)
 
-    override fun getPlayerCount() = server.players.size
+    override fun getPlayerCount(): Int = server.players.size
 
-    override fun getPlayerList() = server.players.map { it.profile.name }
+    override fun getPlayerList(): Collection<String> = server.players.map { it.profile.name }
 
-    override fun getOnlinePlayers() = server.players.map { it.uuid }
+    override fun getOnlinePlayers(): Collection<UUID> = server.players.map { it.uuid }
 
-    override fun isPlayerOnline(uniqueId: UUID) = server.player(uniqueId) != null
+    override fun isPlayerOnline(uniqueId: UUID): Boolean = server.player(uniqueId) != null
 }

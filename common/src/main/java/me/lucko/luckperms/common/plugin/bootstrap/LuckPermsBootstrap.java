@@ -141,6 +141,7 @@ public interface LuckPermsBootstrap {
      * <p>Velocity: ./plugins/luckperms</p>
      * <p>Fabric: ./mods/LuckPerms</p>
      * <p>Forge: ./config/luckperms</p>
+     * <p>Krypton: /root/plugins/luckperms</p>
      *
      * @return the platforms data folder
      */
