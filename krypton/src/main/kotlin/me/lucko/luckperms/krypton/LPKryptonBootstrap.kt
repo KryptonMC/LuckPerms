@@ -39,7 +39,7 @@ import org.kryptonmc.api.event.Listener
 import org.kryptonmc.api.event.ListenerPriority
 import org.kryptonmc.api.event.server.ServerStartEvent
 import org.kryptonmc.api.event.server.ServerStopEvent
-import org.kryptonmc.api.plugin.PluginDescription
+import org.kryptonmc.api.plugin.PluginContainer
 import org.kryptonmc.api.plugin.annotation.DataFolder
 import org.kryptonmc.api.plugin.annotation.Plugin
 import java.nio.file.Path
@@ -56,7 +56,7 @@ class LPKryptonBootstrap @Inject constructor(
     val server: Server,
     logger: Logger,
     @DataFolder folder: Path,
-    private val description: PluginDescription,
+    val container: PluginContainer,
 ) : LuckPermsBootstrap {
 
     private val folder = folder.toAbsolutePath()
@@ -101,7 +101,7 @@ class LPKryptonBootstrap @Inject constructor(
 
     override fun getEnableLatch(): CountDownLatch = enableLatch
 
-    override fun getVersion(): String = description.version
+    override fun getVersion(): String = container.description.version
 
     override fun getStartupTime(): Instant = startTime
 

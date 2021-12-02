@@ -109,7 +109,7 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
     override fun provideEventBus(apiProvider: LuckPermsApiProvider): AbstractEventBus<*> = KryptonEventBus(this, apiProvider)
 
     override fun registerApiOnPlatform(api: LuckPerms) {
-        bootstrap.server.servicesManager.register(bootstrap, api)
+        bootstrap.server.servicesManager.register(bootstrap.container, api)
     }
 
     override fun performFinalSetup() {
