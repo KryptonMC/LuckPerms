@@ -35,7 +35,6 @@ import me.lucko.luckperms.common.calculator.processor.SpongeWildcardProcessor
 import me.lucko.luckperms.common.calculator.processor.WildcardProcessor
 import me.lucko.luckperms.common.config.ConfigKeys
 import me.lucko.luckperms.krypton.LPKryptonPlugin
-import me.lucko.luckperms.krypton.context.KryptonContextManager
 import net.luckperms.api.query.QueryOptions
 
 class KryptonCalculatorFactory(private val plugin: LPKryptonPlugin) : CalculatorFactory {
@@ -45,10 +44,6 @@ class KryptonCalculatorFactory(private val plugin: LPKryptonPlugin) : Calculator
         if (plugin.configuration[ConfigKeys.APPLYING_REGEX]) processors.add(RegexProcessor())
         if (plugin.configuration[ConfigKeys.APPLYING_WILDCARDS]) processors.add(WildcardProcessor())
         if (plugin.configuration[ConfigKeys.APPLYING_WILDCARDS_SPONGE]) processors.add(SpongeWildcardProcessor())
-
-        val op = queryOptions.option(KryptonContextManager.OPERATOR_OPTION).orElse(false)
-        if (op) processors.add(OperatorProcessor)
-
         return PermissionCalculator(plugin, metadata, processors)
     }
 }

@@ -44,20 +44,20 @@ class KryptonSchedulerAdapter(private val bootstrap: LPKryptonBootstrap, private
     override fun asyncLater(task: Runnable, delay: Long, unit: TimeUnit): SchedulerTask {
         val scheduledTask = scheduler.schedule(bootstrap, delay, unit) { task.run() }
         tasks.add(scheduledTask)
-        return SchedulerTask { scheduledTask.cancel() }
+        return SchedulerTask(scheduledTask::cancel)
     }
 
     override fun asyncRepeating(task: Runnable, interval: Long, unit: TimeUnit): SchedulerTask {
         val scheduledTask = scheduler.schedule(bootstrap, interval, interval, unit) { task.run() }
         tasks.add(scheduledTask)
-        return SchedulerTask { scheduledTask.cancel() }
+        return SchedulerTask(scheduledTask::cancel)
     }
 
     override fun shutdownScheduler() {
-        tasks.forEach { it.cancel() }
+        tasks.forEach(Task::cancel)
     }
 
     override fun shutdownExecutor() {
-        // do nothing
+        // Since this delegates to the internal Krypton scheduler, shutting down is managed for us by Krypton.
     }
 }

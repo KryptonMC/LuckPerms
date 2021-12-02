@@ -63,15 +63,21 @@ class KryptonPlayerCalculator(
 
     override fun estimatePotentialContexts(): ContextSet {
         val builder = ImmutableContextSet.builder()
-        if (gamemode) Registries.GAME_MODES.values.forEach {
-            builder.add(DefaultContextKeys.GAMEMODE_KEY, it.key().value())
+        if (gamemode) {
+            Registries.GAME_MODES.values.forEach {
+                builder.add(DefaultContextKeys.GAMEMODE_KEY, it.key().value())
+            }
         }
-        if (dimensionType) Registries.DIMENSION_TYPE.values.forEach {
-            builder.add(DefaultContextKeys.DIMENSION_TYPE_KEY, it.key().asString().removePrefix("minecraft:"))
+        if (dimensionType) {
+            Registries.DIMENSION_TYPE.values.forEach {
+                builder.add(DefaultContextKeys.DIMENSION_TYPE_KEY, it.key().asString().removePrefix("minecraft:"))
+            }
         }
-        if (world) plugin.bootstrap.server.worldManager.worlds.values.forEach {
-            val name = it.name
-            if (Context.isValidValue(name)) builder.add(DefaultContextKeys.WORLD_KEY, name)
+        if (world) {
+            plugin.bootstrap.server.worldManager.worlds.values.forEach {
+                val name = it.name
+                if (Context.isValidValue(name)) builder.add(DefaultContextKeys.WORLD_KEY, name)
+            }
         }
         return builder.build()
     }

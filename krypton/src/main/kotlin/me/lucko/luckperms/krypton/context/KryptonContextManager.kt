@@ -26,13 +26,11 @@
 package me.lucko.luckperms.krypton.context
 
 import com.github.benmanes.caffeine.cache.LoadingCache
-import me.lucko.luckperms.common.config.ConfigKeys
 import me.lucko.luckperms.common.context.manager.ContextManager
 import me.lucko.luckperms.common.context.manager.QueryOptionsCache
 import me.lucko.luckperms.common.util.CaffeineFactory
 import me.lucko.luckperms.krypton.LPKryptonPlugin
 import net.luckperms.api.context.ImmutableContextSet
-import net.luckperms.api.query.OptionKey
 import net.luckperms.api.query.QueryOptions
 import org.kryptonmc.api.entity.player.Player
 import java.util.UUID
@@ -52,15 +50,5 @@ class KryptonContextManager(plugin: LPKryptonPlugin) : ContextManager<Player, Pl
         subjectCaches.getIfPresent(subject)?.invalidate()
     }
 
-    override fun formQueryOptions(subject: Player, contextSet: ImmutableContextSet): QueryOptions {
-        val options = plugin.configuration[ConfigKeys.GLOBAL_QUERY_OPTIONS].toBuilder()
-        if (subject.isOperator) options.option(OPERATOR_OPTION, true)
-        return options.context(contextSet).build()
-    }
-
-    companion object {
-
-        @JvmField
-        val OPERATOR_OPTION: OptionKey<Boolean> = OptionKey.of("op", Boolean::class.java)
-    }
+    override fun formQueryOptions(subject: Player, contextSet: ImmutableContextSet): QueryOptions = formQueryOptions(contextSet)
 }

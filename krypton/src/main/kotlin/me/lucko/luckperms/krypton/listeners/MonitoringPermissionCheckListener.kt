@@ -55,7 +55,7 @@ class MonitoringPermissionCheckListener(private val plugin: LPKryptonPlugin) {
 
     private inner class MonitoredPermissionFunction(subject: Subject, private val delegate: PermissionFunction) : PermissionFunction {
 
-        private val verboseCheckTarget = VerboseCheckTarget.internal(determineName(subject))
+        private val verboseCheckTarget = VerboseCheckTarget.internal(getName(subject))
 
         override fun get(permission: String): TriState {
             val setting = delegate[permission]
@@ -72,7 +72,7 @@ class MonitoringPermissionCheckListener(private val plugin: LPKryptonPlugin) {
         }
     }
 
-    private fun determineName(subject: Subject): String {
+    private fun getName(subject: Subject): String {
         if (subject === plugin.bootstrap.server.console) return "console"
         return subject.javaClass.simpleName
     }

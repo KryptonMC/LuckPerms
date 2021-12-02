@@ -52,6 +52,7 @@ import java.util.Optional;
  * <li>{@code net.minecraft.server.network.ServerPlayerEntity} (Fabric)</li>
  * <li>{@code cn.nukkit.Player}</li>
  * <li>{@code com.velocitypowered.api.proxy.Player}</li>
+ * <li>{@code org.kryptonmc.api.entity.player.Player}</li>
  * </ul>
  */
 public interface ContextManager {

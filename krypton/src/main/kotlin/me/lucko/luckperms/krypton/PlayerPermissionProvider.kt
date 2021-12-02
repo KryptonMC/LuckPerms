@@ -39,7 +39,7 @@ class PlayerPermissionProvider(
     private val queryOptionsSupplier: QueryOptionsSupplier
 ) : PermissionProvider, PermissionFunction {
 
-    override fun createFunction(subject: Subject) = apply {
+    override fun createFunction(subject: Subject): PlayerPermissionProvider = apply {
         check(subject === player) { "createFunction called with a different argument!" }
     }
 
