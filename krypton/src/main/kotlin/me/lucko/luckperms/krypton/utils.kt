@@ -26,7 +26,12 @@
 package me.lucko.luckperms.krypton
 
 import net.kyori.adventure.util.TriState
+import net.luckperms.api.event.EventBus
+import net.luckperms.api.event.EventSubscription
+import net.luckperms.api.event.LuckPermsEvent
+import net.luckperms.api.event.context.ContextUpdateEvent
 import net.luckperms.api.util.Tristate
+import java.util.Optional
 
 fun TriState.toTristate() = when (this) {
     TriState.TRUE -> Tristate.TRUE
@@ -39,3 +44,7 @@ fun Tristate.toTriState() = when (this) {
     Tristate.FALSE -> TriState.FALSE
     Tristate.UNDEFINED -> TriState.NOT_SET
 }
+
+inline fun <reified T : LuckPermsEvent> EventBus.subscribe(noinline handler: (T) -> Unit): EventSubscription<T> = subscribe(T::class.java, handler)
+
+inline fun <reified T> ContextUpdateEvent.subject(): Optional<T> = getSubject(T::class.java)

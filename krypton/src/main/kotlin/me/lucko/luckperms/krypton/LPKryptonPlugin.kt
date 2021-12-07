@@ -43,6 +43,7 @@ import me.lucko.luckperms.common.sender.Sender
 import me.lucko.luckperms.krypton.calculator.KryptonCalculatorFactory
 import me.lucko.luckperms.krypton.context.KryptonContextManager
 import me.lucko.luckperms.krypton.context.KryptonPlayerCalculator
+import me.lucko.luckperms.krypton.listeners.KryptonCommandListUpdater
 import me.lucko.luckperms.krypton.listeners.KryptonConnectionListener
 import me.lucko.luckperms.krypton.listeners.MonitoringPermissionCheckListener
 import me.lucko.luckperms.krypton.messaging.KryptonMessagingFactory
@@ -113,7 +114,8 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
     }
 
     override fun performFinalSetup() {
-        // nothing to do here... yet
+        // register Krypton command list updater
+        if (configuration[ConfigKeys.UPDATE_CLIENT_COMMAND_LIST]) apiProvider.eventBus.subscribe(KryptonCommandListUpdater(bootstrap))
     }
 
     override fun getQueryOptionsForUser(user: User): Optional<QueryOptions> = bootstrap.getPlayer(user.uniqueId).map(contextManager::getQueryOptions)
