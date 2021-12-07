@@ -35,26 +35,33 @@ import net.luckperms.api.context.DefaultContextKeys
 import net.luckperms.api.context.ImmutableContextSet
 import org.kryptonmc.api.entity.player.Player
 import org.kryptonmc.api.event.Listener
+import org.kryptonmc.api.event.player.ChangeGameModeEvent
 import org.kryptonmc.api.event.player.JoinEvent
 import org.kryptonmc.api.registry.Registries
+import org.kryptonmc.api.world.GameMode
 
-// TODO: Add event listening for gamemode and world changes to signal context updates when Krypton supports this
+// TODO: Add event listening for world changes to signal context updates when Krypton supports this
 class KryptonPlayerCalculator(
     private val plugin: LPKryptonPlugin,
     disabled: Set<String>
 ) : ContextCalculator<Player> {
 
-    private val gamemode = DefaultContextKeys.GAMEMODE_KEY !in disabled
-    private val world = DefaultContextKeys.WORLD_KEY !in disabled
-    private val dimensionType = DefaultContextKeys.DIMENSION_TYPE_KEY !in disabled
+    private val gamemode = !disabled.contains(DefaultContextKeys.GAMEMODE_KEY)
+    private val world = !disabled.contains(DefaultContextKeys.WORLD_KEY)
+    private val dimensionType = !disabled.contains(DefaultContextKeys.DIMENSION_TYPE_KEY)
 
     @Listener
     fun onJoinWorld(event: JoinEvent) {
         if (world || dimensionType) plugin.contextManager.signalContextUpdate(event.player)
     }
 
+    @Listener
+    fun onGameModeChange(event: ChangeGameModeEvent) {
+        if (gamemode) plugin.contextManager.signalContextUpdate(event.player)
+    }
+
     override fun calculate(target: Player, consumer: ContextConsumer) {
-        if (gamemode) consumer.accept(DefaultContextKeys.GAMEMODE_KEY, target.gameMode.key().value())
+        if (gamemode) consumer.accept(DefaultContextKeys.GAMEMODE_KEY, target.gameMode.displayName)
         val world = target.world
         val dimension = world.dimensionType
         if (dimensionType) consumer.accept(DefaultContextKeys.DIMENSION_TYPE_KEY, dimension.key().value())
@@ -64,9 +71,7 @@ class KryptonPlayerCalculator(
     override fun estimatePotentialContexts(): ContextSet {
         val builder = ImmutableContextSet.builder()
         if (gamemode) {
-            Registries.GAME_MODES.values.forEach {
-                builder.add(DefaultContextKeys.GAMEMODE_KEY, it.key().value())
-            }
+            GameMode.values().forEach { builder.add(DefaultContextKeys.GAMEMODE_KEY, it.displayName) }
         }
         if (dimensionType) {
             Registries.DIMENSION_TYPE.values.forEach {
@@ -74,9 +79,8 @@ class KryptonPlayerCalculator(
             }
         }
         if (world) {
-            plugin.bootstrap.server.worldManager.worlds.values.forEach {
-                val name = it.name
-                if (Context.isValidValue(name)) builder.add(DefaultContextKeys.WORLD_KEY, name)
+            plugin.bootstrap.server.worldManager.worlds.forEach {
+                if (Context.isValidValue(it.value.name)) builder.add(DefaultContextKeys.WORLD_KEY, it.value.name)
             }
         }
         return builder.build()
