@@ -26,39 +26,39 @@
 package me.lucko.luckperms.krypton
 
 import me.lucko.luckperms.common.locale.TranslationManager
-import me.lucko.luckperms.common.sender.Sender
+import me.lucko.luckperms.common.sender.Sender as LPSender
 import me.lucko.luckperms.common.sender.SenderFactory
 import net.kyori.adventure.text.Component
 import net.luckperms.api.util.Tristate
 import org.kryptonmc.api.command.ConsoleSender
-import org.kryptonmc.api.command.Sender as KryptonSender
+import org.kryptonmc.api.command.Sender
 import org.kryptonmc.api.entity.player.Player
 import java.util.UUID
 
-class KryptonSenderFactory(private val plugin: LPKryptonPlugin) : SenderFactory<LPKryptonPlugin, KryptonSender>(plugin) {
+class KryptonSenderFactory(private val plugin: LPKryptonPlugin) : SenderFactory<LPKryptonPlugin, Sender>(plugin) {
 
-    override fun getName(sender: KryptonSender): String {
+    override fun getName(sender: Sender): String {
         if (sender is Player) return sender.profile.name
-        return Sender.CONSOLE_NAME
+        return LPSender.CONSOLE_NAME
     }
 
-    override fun getUniqueId(sender: KryptonSender): UUID {
+    override fun getUniqueId(sender: Sender): UUID {
         if (sender is Player) return sender.uuid
-        return Sender.CONSOLE_UUID
+        return LPSender.CONSOLE_UUID
     }
 
-    override fun sendMessage(sender: KryptonSender, message: Component) {
+    override fun sendMessage(sender: Sender, message: Component) {
         val locale = if (sender is Player) sender.locale else null
         sender.sendMessage(TranslationManager.render(message, locale))
     }
 
-    override fun getPermissionValue(sender: KryptonSender, node: String): Tristate = sender.getPermissionValue(node).toTristate()
+    override fun getPermissionValue(sender: Sender, node: String): Tristate = sender.getPermissionValue(node).toTristate()
 
-    override fun hasPermission(sender: KryptonSender, node: String): Boolean = sender.hasPermission(node)
+    override fun hasPermission(sender: Sender, node: String): Boolean = sender.hasPermission(node)
 
-    override fun performCommand(sender: KryptonSender, command: String) {
+    override fun performCommand(sender: Sender, command: String) {
         plugin.bootstrap.server.commandManager.dispatch(sender, command)
     }
 
-    override fun isConsole(sender: KryptonSender): Boolean = sender is ConsoleSender
+    override fun isConsole(sender: Sender): Boolean = sender is ConsoleSender
 }

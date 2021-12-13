@@ -14,8 +14,8 @@ repositories {
 
 dependencies {
     implementation project(':common')
-    compileOnly 'org.kryptonmc:krypton-api:0.58'
-    kapt 'org.kryptonmc:krypton-annotation-processor:0.58'
+    compileOnly 'org.kryptonmc:krypton-api:0.59.2'
+    kapt 'org.kryptonmc:krypton-annotation-processor:0.59.2'
 
     // The Kotlin plugin adds an implementation one automatically, but Krypton has this bundled
     compileOnly 'org.jetbrains.kotlin:kotlin-stdlib'
