@@ -25,10 +25,10 @@
 
 package me.lucko.luckperms.krypton.listeners
 
-import me.lucko.luckperms.common.calculator.result.TristateResult
+import me.lucko.luckperms.common.cacheddata.result.TristateResult
 import me.lucko.luckperms.common.query.QueryOptionsImpl
 import me.lucko.luckperms.common.verbose.VerboseCheckTarget
-import me.lucko.luckperms.common.verbose.event.PermissionCheckEvent
+import me.lucko.luckperms.common.verbose.event.CheckOrigin
 import me.lucko.luckperms.krypton.LPKryptonPlugin
 import me.lucko.luckperms.krypton.toTristate
 import net.kyori.adventure.util.TriState
@@ -61,11 +61,11 @@ class MonitoringPermissionCheckListener(private val plugin: LPKryptonPlugin) {
             val setting = delegate[permission]
             val result = setting.toTristate()
             plugin.verboseHandler.offerPermissionCheckEvent(
-                PermissionCheckEvent.Origin.PLATFORM_LOOKUP_CHECK,
+                CheckOrigin.PLATFORM_API_HAS_PERMISSION_SET,
                 verboseCheckTarget,
                 QueryOptionsImpl.DEFAULT_CONTEXTUAL,
                 permission,
-                TristateResult.of(result)
+                TristateResult.forMonitoredResult(result)
             )
             plugin.permissionRegistry.offer(permission)
             return setting
