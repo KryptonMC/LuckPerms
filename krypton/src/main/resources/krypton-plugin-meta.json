@@ -1,0 +1,8 @@
+{
+  "id": "luckperms",
+  "name": "LuckPerms",
+  "version": "@version@",
+  "description": "A permissions plugin",
+  "authors": ["Luck"],
+  "main": "me.lucko.luckperms.krypton.LPKryptonBootstrap"
+}

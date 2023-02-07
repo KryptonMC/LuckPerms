@@ -48,7 +48,7 @@ class KryptonSenderFactory(private val plugin: LPKryptonPlugin) : SenderFactory<
     }
 
     override fun sendMessage(sender: Sender, message: Component) {
-        val locale = if (sender is Player) sender.locale else null
+        val locale = if (sender is Player) sender.settings.locale else null
         sender.sendMessage(TranslationManager.render(message, locale))
     }
 

@@ -44,7 +44,7 @@ class KryptonContextManager(plugin: LPKryptonPlugin) : ContextManager<Player, Pl
 
     override fun getUniqueId(player: Player): UUID = player.uuid
 
-    override fun getCacheFor(subject: Player): QueryOptionsCache<Player> = subjectCaches[subject]!!
+    override fun getCacheFor(subject: Player): QueryOptionsCache<Player> = subjectCaches.get(subject)!!
 
     override fun invalidateCache(subject: Player) {
         subjectCaches.getIfPresent(subject)?.invalidate()

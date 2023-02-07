@@ -37,7 +37,7 @@ import org.kryptonmc.api.entity.player.Player
 import org.kryptonmc.api.event.Listener
 import org.kryptonmc.api.event.player.ChangeGameModeEvent
 import org.kryptonmc.api.event.player.JoinEvent
-import org.kryptonmc.api.registry.Registries
+import org.kryptonmc.api.registry.DynamicRegistries
 import org.kryptonmc.api.world.GameMode
 
 // TODO: Add event listening for world changes to signal context updates when Krypton supports this
@@ -61,23 +61,33 @@ class KryptonPlayerCalculator(
     }
 
     override fun calculate(target: Player, consumer: ContextConsumer) {
-        if (gamemode) consumer.accept(DefaultContextKeys.GAMEMODE_KEY, target.gameMode.serialized)
+        if (gamemode) {
+            consumer.accept(DefaultContextKeys.GAMEMODE_KEY, target.gameMode.name.lowercase())
+        }
+
         val world = target.world
         val dimension = world.dimensionType
-        if (dimensionType) consumer.accept(DefaultContextKeys.DIMENSION_TYPE_KEY, dimension.key().value())
-        if (this.world) plugin.configuration[ConfigKeys.WORLD_REWRITES].rewriteAndSubmit(world.name, consumer)
+
+        if (dimensionType) {
+            consumer.accept(DefaultContextKeys.DIMENSION_TYPE_KEY, dimension.key().value())
+        }
+        if (this.world) {
+            plugin.configuration.get(ConfigKeys.WORLD_REWRITES).rewriteAndSubmit(world.name, consumer)
+        }
     }
 
     override fun estimatePotentialContexts(): ContextSet {
         val builder = ImmutableContextSet.builder()
         if (gamemode) {
-            GameMode.values().forEach { builder.add(DefaultContextKeys.GAMEMODE_KEY, it.serialized) }
+            GameMode.values().forEach { builder.add(DefaultContextKeys.GAMEMODE_KEY, it.name.lowercase()) }
         }
+
         if (dimensionType) {
-            Registries.DIMENSION_TYPE.values.forEach {
+            DynamicRegistries.DIMENSION_TYPE.forEach {
                 builder.add(DefaultContextKeys.DIMENSION_TYPE_KEY, it.key().asString().removePrefix("minecraft:"))
             }
         }
+
         if (world) {
             plugin.bootstrap.server.worldManager.worlds.forEach {
                 if (Context.isValidValue(it.value.name)) builder.add(DefaultContextKeys.WORLD_KEY, it.value.name)

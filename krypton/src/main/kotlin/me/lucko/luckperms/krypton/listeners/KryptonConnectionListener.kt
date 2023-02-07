@@ -33,9 +33,7 @@ import me.lucko.luckperms.krypton.LPKryptonPlugin
 import me.lucko.luckperms.krypton.PlayerPermissionProvider
 import org.kryptonmc.api.entity.player.Player
 import org.kryptonmc.api.event.Listener
-import org.kryptonmc.api.event.ListenerPriority
 import org.kryptonmc.api.event.player.JoinEvent
-import org.kryptonmc.api.event.player.JoinResult
 import org.kryptonmc.api.event.player.QuitEvent
 import org.kryptonmc.api.event.server.SetupPermissionsEvent
 import java.util.Collections
@@ -53,7 +51,7 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
         if (event.subject !is Player) return
         val player = event.subject as Player
 
-        if (plugin.configuration[ConfigKeys.DEBUG_LOGINS]) {
+        if (plugin.configuration.get(ConfigKeys.DEBUG_LOGINS)) {
             plugin.logger.info("Processing pre-login for ${player.uuid} - ${player.profile.name}")
         }
 
@@ -77,7 +75,7 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
             plugin.logger.severe("Exception occurred whilst loading data for ${player.uuid} - ${player.profile.name}", exception)
 
             // there was sme error loading
-            if (plugin.configuration[ConfigKeys.CANCEL_FAILED_LOGINS]) {
+            if (plugin.configuration.get(ConfigKeys.CANCEL_FAILED_LOGINS)) {
                 // cancel the login attempt
                 deniedLogin.add(player.uuid)
             }
@@ -85,11 +83,11 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
         }
     }
 
-    @Listener(ListenerPriority.MAXIMUM)
+    @Listener
     fun onJoin(event: JoinEvent) {
         val player = event.player
         if (!deniedLogin.remove(player.uuid)) return
-        event.result = JoinResult.denied(TranslationManager.render(Message.LOADING_DATABASE_ERROR.build(), player.locale))
+        event.denyWithResult(JoinEvent.Result(TranslationManager.render(Message.LOADING_DATABASE_ERROR.build(), player.settings.locale), false))
     }
 
     @Listener
@@ -101,7 +99,7 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
         if (plugin.configuration.get(ConfigKeys.DEBUG_LOGINS)) {
             plugin.logger.info("Processing join for $formattedInfo")
         }
-        if (!event.result.isAllowed) return
+        if (!event.isAllowed()) return
 
         if (user == null) {
             if (!uniqueConnections.contains(player.uuid)) {
@@ -112,20 +110,18 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
                     "session. Denying login.")
             }
 
-            if (plugin.configuration[ConfigKeys.CANCEL_FAILED_LOGINS]) {
+            if (plugin.configuration.get(ConfigKeys.CANCEL_FAILED_LOGINS)) {
                 // disconnect the user
-                event.result = JoinResult.denied(TranslationManager.render(Message.LOADING_STATE_ERROR.build(), player.locale))
+                event.denyWithResult(JoinEvent.Result(TranslationManager.render(Message.LOADING_STATE_ERROR.build(), player.settings.locale), false))
             } else {
                 // just send a message
-                plugin.bootstrap.scheduler.asyncLater({
-                    Message.LOADING_STATE_ERROR.send(plugin.senderFactory.wrap(player))
-                }, 1, TimeUnit.SECONDS)
+                plugin.bootstrap.scheduler.asyncLater({ Message.LOADING_STATE_ERROR.send(plugin.senderFactory.wrap(player)) }, 1, TimeUnit.SECONDS)
             }
         }
     }
 
     // Sit at the back of the queue so other plugins can still perform permission checks on this event
-    @Listener(ListenerPriority.NONE)
+    @Listener
     fun onQuit(event: QuitEvent) {
         handleDisconnect(event.player.uuid)
     }

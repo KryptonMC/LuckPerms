@@ -30,8 +30,6 @@ import me.lucko.luckperms.common.cache.BufferedRequest
 import me.lucko.luckperms.common.event.LuckPermsEventListener
 import me.lucko.luckperms.common.util.CaffeineFactory
 import me.lucko.luckperms.krypton.LPKryptonBootstrap
-import me.lucko.luckperms.krypton.subject
-import me.lucko.luckperms.krypton.subscribe
 import net.luckperms.api.event.EventBus
 import net.luckperms.api.event.context.ContextUpdateEvent
 import net.luckperms.api.event.user.UserDataRecalculateEvent
@@ -46,15 +44,15 @@ class KryptonCommandListUpdater(private val bootstrap: LPKryptonBootstrap) : Luc
         .build(::SendBuffer)
 
     override fun bind(bus: EventBus) {
-        bus.subscribe<UserDataRecalculateEvent> { requestUpdate(it.user.uniqueId) }
-        bus.subscribe<ContextUpdateEvent> { event -> event.subject<Player>().ifPresent { requestUpdate(it.uuid) } }
+        bus.subscribe(UserDataRecalculateEvent::class.java) { requestUpdate(it.user.uniqueId) }
+        bus.subscribe(ContextUpdateEvent::class.java) { event -> event.getSubject(Player::class.java).ifPresent { requestUpdate(it.uuid) } }
     }
 
     private fun requestUpdate(uuid: UUID) {
         if (!bootstrap.isPlayerOnline(uuid)) return
 
         // Buffer the request to send a commands update.
-        sendingBuffers[uuid]!!.request()
+        sendingBuffers.get(uuid)!!.request()
     }
 
     private fun sendUpdate(uuid: UUID) {

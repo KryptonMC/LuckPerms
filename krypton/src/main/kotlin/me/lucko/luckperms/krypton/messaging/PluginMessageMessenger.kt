@@ -32,7 +32,8 @@ import net.luckperms.api.messenger.Messenger
 import net.luckperms.api.messenger.message.OutgoingMessage
 import org.kryptonmc.api.event.Listener
 import org.kryptonmc.api.event.player.PluginMessageEvent
-import java.util.concurrent.TimeUnit
+import org.kryptonmc.api.scheduling.TaskAction
+import org.kryptonmc.api.scheduling.TaskTime
 
 class PluginMessageMessenger(private val plugin: LPKryptonPlugin, private val consumer: IncomingMessageConsumer) : Messenger {
 
@@ -44,10 +45,10 @@ class PluginMessageMessenger(private val plugin: LPKryptonPlugin, private val co
 
     override fun sendOutgoingMessage(outgoingMessage: OutgoingMessage) {
         val data = outgoingMessage.asEncodedString().encodeToByteArray()
-        plugin.bootstrap.server.scheduler.schedule(plugin.bootstrap, 0L, 5L, TimeUnit.SECONDS) {
-            val player = plugin.bootstrap.server.players.firstOrNull() ?: return@schedule
+        plugin.bootstrap.server.scheduler.submitTask {
+            val player = plugin.bootstrap.server.players.firstOrNull() ?: return@submitTask TaskAction.scheduleAfter(TaskTime.seconds(5))
             player.sendPluginMessage(CHANNEL, data)
-            it.cancel()
+            TaskAction.cancel()
         }
     }
 

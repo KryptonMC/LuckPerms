@@ -63,12 +63,6 @@ class KryptonConfigAdapter(
         return node.getList(String::class, def)
     }
 
-    override fun getKeys(path: String, def: List<String>): List<String> {
-        val node = path.resolve()
-        if (node.virtual() || !node.isMap) return def
-        return node.childrenMap().keys.map { it.toString() }
-    }
-
     override fun getStringMap(path: String, def: MutableMap<String, String>): MutableMap<String, String> {
         val node = path.resolve()
         if (node.virtual()) return def

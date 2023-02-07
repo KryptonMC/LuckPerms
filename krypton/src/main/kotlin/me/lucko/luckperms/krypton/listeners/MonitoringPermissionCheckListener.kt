@@ -34,7 +34,6 @@ import me.lucko.luckperms.krypton.toTristate
 import net.kyori.adventure.util.TriState
 import org.kryptonmc.api.entity.player.Player
 import org.kryptonmc.api.event.Listener
-import org.kryptonmc.api.event.ListenerPriority
 import org.kryptonmc.api.event.server.SetupPermissionsEvent
 import org.kryptonmc.api.permission.PermissionFunction
 import org.kryptonmc.api.permission.PermissionProvider
@@ -42,7 +41,7 @@ import org.kryptonmc.api.permission.Subject
 
 class MonitoringPermissionCheckListener(private val plugin: LPKryptonPlugin) {
 
-    @Listener(ListenerPriority.NONE)
+    @Listener
     fun onOtherPermissionSetup(event: SetupPermissionsEvent) {
         if (event.subject is Player) return
         event.provider = MonitoredPermissionProvider(event.provider)
@@ -57,8 +56,8 @@ class MonitoringPermissionCheckListener(private val plugin: LPKryptonPlugin) {
 
         private val verboseCheckTarget = VerboseCheckTarget.internal(getName(subject))
 
-        override fun get(permission: String): TriState {
-            val setting = delegate[permission]
+        override fun getPermissionValue(permission: String): TriState {
+            val setting = delegate.getPermissionValue(permission)
             val result = setting.toTristate()
             plugin.verboseHandler.offerPermissionCheckEvent(
                 CheckOrigin.PLATFORM_API_HAS_PERMISSION_SET,

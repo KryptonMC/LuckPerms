@@ -41,9 +41,9 @@ class KryptonCalculatorFactory(private val plugin: LPKryptonPlugin) : Calculator
 
     override fun build(queryOptions: QueryOptions, metadata: CacheMetadata): PermissionCalculator {
         val processors = ArrayList<PermissionProcessor>(4).apply { add(DirectProcessor()) }
-        if (plugin.configuration[ConfigKeys.APPLYING_REGEX]) processors.add(RegexProcessor())
-        if (plugin.configuration[ConfigKeys.APPLYING_WILDCARDS]) processors.add(WildcardProcessor())
-        if (plugin.configuration[ConfigKeys.APPLYING_WILDCARDS_SPONGE]) processors.add(SpongeWildcardProcessor())
+        if (plugin.configuration.get(ConfigKeys.APPLYING_REGEX)) processors.add(RegexProcessor())
+        if (plugin.configuration.get(ConfigKeys.APPLYING_WILDCARDS)) processors.add(WildcardProcessor())
+        if (plugin.configuration.get(ConfigKeys.APPLYING_WILDCARDS_SPONGE)) processors.add(SpongeWildcardProcessor())
         return PermissionCalculator(plugin, metadata, processors)
     }
 }

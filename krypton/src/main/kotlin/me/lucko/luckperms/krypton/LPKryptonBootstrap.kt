@@ -35,13 +35,13 @@ import net.luckperms.api.platform.Platform
 import org.apache.logging.log4j.Logger
 import org.kryptonmc.api.Server
 import org.kryptonmc.api.entity.player.Player
+import org.kryptonmc.api.event.Event
+import org.kryptonmc.api.event.EventNode
 import org.kryptonmc.api.event.Listener
-import org.kryptonmc.api.event.ListenerPriority
 import org.kryptonmc.api.event.server.ServerStartEvent
 import org.kryptonmc.api.event.server.ServerStopEvent
 import org.kryptonmc.api.plugin.PluginContainer
 import org.kryptonmc.api.plugin.annotation.DataFolder
-import org.kryptonmc.api.plugin.annotation.Plugin
 import java.nio.file.Path
 import java.time.Instant
 import java.util.Optional
@@ -51,10 +51,10 @@ import java.util.concurrent.CountDownLatch
 /**
  * Bootstrap plugin for LuckPerms running on Krypton.
  */
-@Plugin("luckperms", "LuckPerms", "@version@", "A permissions plugin", ["Luck"])
 class LPKryptonBootstrap @Inject constructor(
     val server: Server,
     logger: Logger,
+    val eventNode: EventNode<Event>,
     @DataFolder folder: Path,
     val container: PluginContainer,
 ) : LuckPermsBootstrap {
@@ -70,7 +70,7 @@ class LPKryptonBootstrap @Inject constructor(
 
     private lateinit var startTime: Instant
 
-    @Listener(ListenerPriority.MAXIMUM)
+    @Listener
     fun onStart(event: ServerStartEvent) {
         try {
             plugin.load()
@@ -86,7 +86,7 @@ class LPKryptonBootstrap @Inject constructor(
         }
     }
 
-    @Listener(ListenerPriority.NONE)
+    @Listener
     fun onStop(event: ServerStopEvent) {
         plugin.disable()
     }
@@ -113,11 +113,11 @@ class LPKryptonBootstrap @Inject constructor(
 
     override fun getDataDirectory(): Path = folder
 
-    override fun getPlayer(uniqueId: UUID): Optional<Player> = Optional.ofNullable(server.player(uniqueId))
+    override fun getPlayer(uniqueId: UUID): Optional<Player> = Optional.ofNullable(server.getPlayer(uniqueId))
 
-    override fun lookupUniqueId(username: String): Optional<UUID> = Optional.ofNullable(server.player(username)?.uuid)
+    override fun lookupUniqueId(username: String): Optional<UUID> = Optional.ofNullable(server.getPlayer(username)?.uuid)
 
-    override fun lookupUsername(uniqueId: UUID): Optional<String> = Optional.ofNullable(server.player(uniqueId)?.profile?.name)
+    override fun lookupUsername(uniqueId: UUID): Optional<String> = Optional.ofNullable(server.getPlayer(uniqueId)?.profile?.name)
 
     override fun getPlayerCount(): Int = server.players.size
 
@@ -125,5 +125,5 @@ class LPKryptonBootstrap @Inject constructor(
 
     override fun getOnlinePlayers(): Collection<UUID> = server.players.map { it.uuid }
 
-    override fun isPlayerOnline(uniqueId: UUID): Boolean = server.player(uniqueId) != null
+    override fun isPlayerOnline(uniqueId: UUID): Boolean = server.getPlayer(uniqueId) != null
 }

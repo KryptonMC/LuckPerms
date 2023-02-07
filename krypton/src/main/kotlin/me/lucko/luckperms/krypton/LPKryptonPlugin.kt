@@ -77,8 +77,8 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
 
     override fun registerPlatformListeners() {
         connectionListener = KryptonConnectionListener(this)
-        bootstrap.server.eventManager.register(bootstrap, connectionListener)
-        bootstrap.server.eventManager.register(bootstrap, MonitoringPermissionCheckListener(this))
+        bootstrap.eventNode.registerListeners(connectionListener)
+        bootstrap.eventNode.registerListeners(MonitoringPermissionCheckListener(this))
     }
 
     override fun provideMessagingFactory(): MessagingFactory<*> = KryptonMessagingFactory(this)
@@ -98,8 +98,8 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
 
     override fun setupContextManager() {
         contextManager = KryptonContextManager(this)
-        val playerCalculator = KryptonPlayerCalculator(this, configuration[ConfigKeys.DISABLED_CONTEXTS])
-        bootstrap.server.eventManager.register(bootstrap, playerCalculator)
+        val playerCalculator = KryptonPlayerCalculator(this, configuration.get(ConfigKeys.DISABLED_CONTEXTS))
+        bootstrap.eventNode.registerListeners(playerCalculator)
         contextManager.registerCalculator(playerCalculator)
     }
 
@@ -115,7 +115,7 @@ class LPKryptonPlugin(private val bootstrap: LPKryptonBootstrap) : AbstractLuckP
 
     override fun performFinalSetup() {
         // register Krypton command list updater
-        if (configuration[ConfigKeys.UPDATE_CLIENT_COMMAND_LIST]) apiProvider.eventBus.subscribe(KryptonCommandListUpdater(bootstrap))
+        if (configuration.get(ConfigKeys.UPDATE_CLIENT_COMMAND_LIST)) apiProvider.eventBus.subscribe(KryptonCommandListUpdater(bootstrap))
     }
 
     override fun getQueryOptionsForUser(user: User): Optional<QueryOptions> = bootstrap.getPlayer(user.uniqueId).map(contextManager::getQueryOptions)

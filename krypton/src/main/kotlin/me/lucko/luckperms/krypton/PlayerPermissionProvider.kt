@@ -43,7 +43,9 @@ class PlayerPermissionProvider(
         check(subject === player) { "createFunction called with a different argument!" }
     }
 
-    override fun get(permission: String): TriState = user.cachedData.getPermissionData(queryOptionsSupplier.queryOptions)
-        .checkPermission(permission)
-        .toTriState()
+    override fun getPermissionValue(permission: String): TriState {
+        return user.cachedData.getPermissionData(queryOptionsSupplier.queryOptions)
+            .checkPermission(permission)
+            .toTriState()
+    }
 }

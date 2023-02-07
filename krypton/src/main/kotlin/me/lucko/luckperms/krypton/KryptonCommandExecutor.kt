@@ -27,14 +27,14 @@ package me.lucko.luckperms.krypton
 
 import me.lucko.luckperms.common.command.CommandManager
 import me.lucko.luckperms.common.command.utils.ArgumentTokenizer
+import org.kryptonmc.api.command.CommandMeta
 import org.kryptonmc.api.command.RawCommand
 import org.kryptonmc.api.command.Sender
-import org.kryptonmc.api.command.meta.commandMeta
 
 class KryptonCommandExecutor(private val plugin: LPKryptonPlugin) : CommandManager(plugin), RawCommand {
 
     fun register() {
-        plugin.bootstrap.server.commandManager.register(this, commandMeta(NAME) { aliases(ALIASES) })
+        plugin.bootstrap.server.commandManager.register(this, CommandMeta.builder(NAME).aliases(ALIASES).build())
     }
 
     override fun execute(sender: Sender, args: String) {

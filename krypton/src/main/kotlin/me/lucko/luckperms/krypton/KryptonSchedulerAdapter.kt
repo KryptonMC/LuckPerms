@@ -25,39 +25,13 @@
 
 package me.lucko.luckperms.krypton
 
-import me.lucko.luckperms.common.plugin.scheduler.SchedulerAdapter
-import me.lucko.luckperms.common.plugin.scheduler.SchedulerTask
+import me.lucko.luckperms.common.plugin.scheduler.AbstractJavaScheduler
 import org.kryptonmc.api.scheduling.Scheduler
-import org.kryptonmc.api.scheduling.Task
 import java.util.concurrent.Executor
-import java.util.concurrent.TimeUnit
 
-class KryptonSchedulerAdapter(private val bootstrap: LPKryptonBootstrap, private val scheduler: Scheduler) : SchedulerAdapter {
+class KryptonSchedulerAdapter(bootstrap: LPKryptonBootstrap, private val scheduler: Scheduler) : AbstractJavaScheduler(bootstrap) {
 
-    private val executor = Executor { command -> scheduler.run(bootstrap) { command.run() } }
-    private val tasks = mutableSetOf<Task>()
+    private val syncExecutor = Executor { command -> scheduler.buildTask(command).schedule() }
 
-    override fun sync(): Executor = executor
-
-    override fun async(): Executor = executor
-
-    override fun asyncLater(task: Runnable, delay: Long, unit: TimeUnit): SchedulerTask {
-        val scheduledTask = scheduler.schedule(bootstrap, delay, unit) { task.run() }
-        tasks.add(scheduledTask)
-        return SchedulerTask(scheduledTask::cancel)
-    }
-
-    override fun asyncRepeating(task: Runnable, interval: Long, unit: TimeUnit): SchedulerTask {
-        val scheduledTask = scheduler.schedule(bootstrap, interval, interval, unit) { task.run() }
-        tasks.add(scheduledTask)
-        return SchedulerTask(scheduledTask::cancel)
-    }
-
-    override fun shutdownScheduler() {
-        tasks.forEach(Task::cancel)
-    }
-
-    override fun shutdownExecutor() {
-        // Since this delegates to the internal Krypton scheduler, shutting down is managed for us by Krypton.
-    }
+    override fun sync(): Executor = syncExecutor
 }
