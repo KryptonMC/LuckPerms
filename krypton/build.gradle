@@ -16,7 +16,7 @@ repositories {
 
 dependencies {
     implementation project(':common')
-    compileOnly 'org.kryptonmc:krypton-api:5f0552bf50'
+    compileOnly 'org.kryptonmc:krypton-api:f102ed4d30'
 
     // The Kotlin plugin adds an implementation one automatically, but Krypton has this bundled
     compileOnly 'org.jetbrains.kotlin:kotlin-stdlib'

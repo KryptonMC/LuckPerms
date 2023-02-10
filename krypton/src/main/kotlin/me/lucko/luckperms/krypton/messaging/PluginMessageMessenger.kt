@@ -31,14 +31,14 @@ import net.luckperms.api.messenger.IncomingMessageConsumer
 import net.luckperms.api.messenger.Messenger
 import net.luckperms.api.messenger.message.OutgoingMessage
 import org.kryptonmc.api.event.Listener
-import org.kryptonmc.api.event.player.PluginMessageEvent
+import org.kryptonmc.api.event.player.PluginMessageReceivedEvent
 import org.kryptonmc.api.scheduling.TaskAction
 import org.kryptonmc.api.scheduling.TaskTime
 
 class PluginMessageMessenger(private val plugin: LPKryptonPlugin, private val consumer: IncomingMessageConsumer) : Messenger {
 
     @Listener
-    fun onMessage(event: PluginMessageEvent) {
+    fun onMessage(event: PluginMessageReceivedEvent) {
         if (event.channel != CHANNEL) return
         consumer.consumeIncomingMessageAsString(event.message.decodeToString())
     }

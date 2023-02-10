@@ -36,7 +36,6 @@ import org.kryptonmc.api.entity.player.Player
 import org.kryptonmc.api.event.Listener
 import org.kryptonmc.api.event.server.SetupPermissionsEvent
 import org.kryptonmc.api.permission.PermissionFunction
-import org.kryptonmc.api.permission.PermissionProvider
 import org.kryptonmc.api.permission.Subject
 
 class MonitoringPermissionCheckListener(private val plugin: LPKryptonPlugin) {
@@ -44,12 +43,8 @@ class MonitoringPermissionCheckListener(private val plugin: LPKryptonPlugin) {
     @Listener
     fun onOtherPermissionSetup(event: SetupPermissionsEvent) {
         if (event.subject is Player) return
-        event.provider = MonitoredPermissionProvider(event.provider)
-    }
-
-    private inner class MonitoredPermissionProvider(private val delegate: PermissionProvider) : PermissionProvider {
-
-        override fun createFunction(subject: Subject): PermissionFunction = MonitoredPermissionFunction(subject, delegate.createFunction(subject))
+        val delegate = event.result?.function ?: event.defaultFunction
+        event.result = SetupPermissionsEvent.Result(MonitoredPermissionFunction(event.subject, delegate))
     }
 
     private inner class MonitoredPermissionFunction(subject: Subject, private val delegate: PermissionFunction) : PermissionFunction {

@@ -30,15 +30,13 @@ import me.lucko.luckperms.common.locale.Message
 import me.lucko.luckperms.common.locale.TranslationManager
 import me.lucko.luckperms.common.plugin.util.AbstractConnectionListener
 import me.lucko.luckperms.krypton.LPKryptonPlugin
-import me.lucko.luckperms.krypton.PlayerPermissionProvider
+import me.lucko.luckperms.krypton.PlayerPermissionFunction
 import org.kryptonmc.api.entity.player.Player
 import org.kryptonmc.api.event.Listener
-import org.kryptonmc.api.event.player.JoinEvent
-import org.kryptonmc.api.event.player.QuitEvent
+import org.kryptonmc.api.event.player.PlayerJoinEvent
 import org.kryptonmc.api.event.server.SetupPermissionsEvent
 import java.util.Collections
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractConnectionListener(plugin) {
 
@@ -69,12 +67,12 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
         try {
             val user = loadUser(player.uuid, player.profile.name)
             recordConnection(player.uuid)
-            event.provider = PlayerPermissionProvider(player, user, plugin.contextManager.getCacheFor(player))
+            event.result = SetupPermissionsEvent.Result(PlayerPermissionFunction(user, plugin.contextManager.getCacheFor(player)))
             plugin.eventDispatcher.dispatchPlayerLoginProcess(player.uuid, player.profile.name, user)
         } catch (exception: Exception) {
             plugin.logger.severe("Exception occurred whilst loading data for ${player.uuid} - ${player.profile.name}", exception)
 
-            // there was sme error loading
+            // there was some error loading
             if (plugin.configuration.get(ConfigKeys.CANCEL_FAILED_LOGINS)) {
                 // cancel the login attempt
                 deniedLogin.add(player.uuid)
@@ -84,45 +82,28 @@ class KryptonConnectionListener(private val plugin: LPKryptonPlugin) : AbstractC
     }
 
     @Listener
-    fun onJoin(event: JoinEvent) {
-        val player = event.player
-        if (!deniedLogin.remove(player.uuid)) return
-        event.denyWithResult(JoinEvent.Result(TranslationManager.render(Message.LOADING_DATABASE_ERROR.build(), player.settings.locale), false))
-    }
+    fun onJoin(event: PlayerJoinEvent) {
+        val uuid = event.player.uuid
+        val user = plugin.userManager.getIfLoaded(uuid)
 
-    @Listener
-    fun onNormalJoin(event: JoinEvent) {
-        val player = event.player
-        val user = plugin.userManager.getIfLoaded(player.uuid)
-
-        val formattedInfo = "${player.uuid} - ${player.profile.name}"
+        val formattedInfo = "$uuid - ${event.player.profile.name}"
         if (plugin.configuration.get(ConfigKeys.DEBUG_LOGINS)) {
             plugin.logger.info("Processing join for $formattedInfo")
         }
         if (!event.isAllowed()) return
 
         if (user == null) {
-            if (!uniqueConnections.contains(player.uuid)) {
-                plugin.logger.warn("User $formattedInfo doesn't have any data pre-loaded, they have never been processed during login in this " +
-                    "session. Denying login.")
-            } else {
-                plugin.logger.warn("User $formattedInfo doesn't currently have any data pre-loaded, but they have been processed before in this " +
-                    "session. Denying login.")
-            }
+            plugin.logger.warn("User $formattedInfo doesn't have any data pre-loaded. Denying login.")
+            if (!plugin.configuration.get(ConfigKeys.CANCEL_FAILED_LOGINS)) return
 
-            if (plugin.configuration.get(ConfigKeys.CANCEL_FAILED_LOGINS)) {
-                // disconnect the user
-                event.denyWithResult(JoinEvent.Result(TranslationManager.render(Message.LOADING_STATE_ERROR.build(), player.settings.locale), false))
-            } else {
-                // just send a message
-                plugin.bootstrap.scheduler.asyncLater({ Message.LOADING_STATE_ERROR.send(plugin.senderFactory.wrap(player)) }, 1, TimeUnit.SECONDS)
-            }
+            // disconnect the user
+            val result = PlayerJoinEvent.Result(TranslationManager.render(Message.LOADING_DATABASE_ERROR.build()), false)
+            event.denyWithResult(result)
         }
-    }
 
-    // Sit at the back of the queue so other plugins can still perform permission checks on this event
-    @Listener
-    fun onQuit(event: QuitEvent) {
-        handleDisconnect(event.player.uuid)
+        if (deniedLogin.remove(uuid)) {
+            val result = PlayerJoinEvent.Result(TranslationManager.render(Message.LOADING_DATABASE_ERROR.build()), false)
+            event.denyWithResult(result)
+        }
     }
 }

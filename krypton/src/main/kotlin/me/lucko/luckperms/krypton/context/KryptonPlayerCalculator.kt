@@ -35,8 +35,8 @@ import net.luckperms.api.context.DefaultContextKeys
 import net.luckperms.api.context.ImmutableContextSet
 import org.kryptonmc.api.entity.player.Player
 import org.kryptonmc.api.event.Listener
-import org.kryptonmc.api.event.player.ChangeGameModeEvent
-import org.kryptonmc.api.event.player.JoinEvent
+import org.kryptonmc.api.event.player.PlayerChangeGameModeEvent
+import org.kryptonmc.api.event.player.PlayerJoinEvent
 import org.kryptonmc.api.registry.DynamicRegistries
 import org.kryptonmc.api.world.GameMode
 
@@ -51,12 +51,12 @@ class KryptonPlayerCalculator(
     private val dimensionType = !disabled.contains(DefaultContextKeys.DIMENSION_TYPE_KEY)
 
     @Listener
-    fun onJoinWorld(event: JoinEvent) {
+    fun onJoinWorld(event: PlayerJoinEvent) {
         if (world || dimensionType) plugin.contextManager.signalContextUpdate(event.player)
     }
 
     @Listener
-    fun onGameModeChange(event: ChangeGameModeEvent) {
+    fun onGameModeChange(event: PlayerChangeGameModeEvent) {
         if (gamemode) plugin.contextManager.signalContextUpdate(event.player)
     }
 
