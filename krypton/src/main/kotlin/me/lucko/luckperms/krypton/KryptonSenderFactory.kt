@@ -38,7 +38,7 @@ import java.util.UUID
 class KryptonSenderFactory(private val plugin: LPKryptonPlugin) : SenderFactory<LPKryptonPlugin, Sender>(plugin) {
 
     override fun getName(sender: Sender): String {
-        if (sender is Player) return sender.profile.name
+        if (sender is Player) return sender.name
         return LPSender.CONSOLE_NAME
     }
 
